@@ -4,8 +4,9 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-export default function LoginPage() {
+export default function AddYourEmailPage() {
   const [mounted, setMounted] = useState(false);
+  const [email, setEmail] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
@@ -34,7 +35,7 @@ export default function LoginPage() {
           height: "calc(100% + 40px)",
           paddingBottom: "9%",
           paddingLeft: "8%",
-          paddingRight: "5%",
+          paddingRight: "8%",
         }}
       >
         <div className="absolute inset-0 md:hidden overflow-hidden">
@@ -47,9 +48,8 @@ export default function LoginPage() {
           />
           <div className="absolute inset-0 bg-black/40" />
         </div>
-
         <div
-          className="hidden md:block absolute top-0 pointer-events-none select-none opacity-90"
+          className="hidden md:block absolute top-0 pointer-events-none select-none"
           style={{
             right: "-2%",
             width: "88%",
@@ -57,7 +57,7 @@ export default function LoginPage() {
             transform: mounted ? "translateY(0)" : "translateY(-80px)",
             opacity: mounted ? 0.9 : 0,
             transition: "transform 2.5s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.9s ease",
-            transitionDelay:"0s"
+            transitionDelay: "0s",
           }}
         >
           <Image
@@ -68,70 +68,92 @@ export default function LoginPage() {
             priority
           />
         </div>
-
         <div
-          className="relative z-10 w-full"
+          className="relative z-10 w-full flex items-center gap-3 mb-8"
           style={{
-            marginBottom: "22%",
             transform: mounted ? "translateX(0)" : "translateX(-60px)",
             opacity: mounted ? 1 : 0,
-            transition: "transform 2.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s, opacity 0.7s ease 0.15s",
-            transitionDelay:"0.5s"
+            transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease",
+            transitionDelay: "0.4s",
           }}
         >
-          <h1
-            className="text-white font-bold leading-none tracking-tight"
-            style={{
-              fontSize: "clamp(2rem, 5vw, 3.8rem)",
-              fontFamily: "'Georgia', serif",
-            }}
+          <Link href="/login" className="text-black/80 hover:text-white transition-colors">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M19 12H5M5 12l7 7M5 12l7-7" />
+            </svg>
+          </Link>
+          <h2
+            className="text-black font-semibold"
+            style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)" }}
           >
-            Fashai
-          </h1>
-          <p
-            className="text-white/80 uppercase font-light tracking-widest"
-            style={{
-              fontSize: "clamp(0.55rem, 1vw, 0.85rem)",
-              marginTop: "0.3rem",
-              marginLeft: "clamp(2rem, 5vw, 8rem)",
-            }}
+            Add your email
+          </h2>
+          <span
+            className="text-black/50 font-light ml-1"
+            style={{ fontSize: "clamp(0.85rem, 1.4vw, 1.1rem)" }}
           >
-            your daily wardrobe
-          </p>
+            1 / 3
+          </span>
         </div>
         <div
-          className="relative z-10 w-full flex flex-col gap-3"
+          className="relative z-10 w-full flex flex-col gap-4"
           style={{
             maxWidth: "90%",
             transform: mounted ? "translateY(0)" : "translateY(40px)",
             opacity: mounted ? 1 : 0,
-            transition: "transform 2.5s cubic-bezier(0.22, 1, 0.36, 1) 0.15s, opacity 0.7s ease 0.15s",
-            transitionDelay:"0.7s"
+            transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease",
+            transitionDelay: "0.65s",
           }}
         >
-          <Link
-            href="/add_your_email"
-            className="w-full bg-white text-gray-900 font-semibold text-center
-              rounded-2xl transition-all duration-200
-              hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
+          <div className="flex gap-2 mb-2">
+            <div className="h-1 w-8 rounded-full bg-white" />
+            <div className="h-1 w-8 rounded-full bg-white/30" />
+            <div className="h-1 w-8 rounded-full bg-white/30" />
+          </div>
+
+          <label
+            className="text-white/80 text-sm font-medium"
+            style={{ fontSize: "clamp(0.75rem, 1vw, 0.95rem)" }}
+          >
+            Email
+          </label>
+
+          <input
+            type="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="example@example.com"
+            className="w-full bg-white text-gray-900 rounded-2xl outline-none
+              placeholder:text-gray-400
+              focus:ring-2 focus:ring-white/50 transition-all"
+            style={{
+              fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
+              padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
+            }}
+          />
+
+          <button
+            className="w-full bg-white/30 hover:bg-white/40 active:scale-[0.98]
+              text-white font-semibold text-center rounded-2xl
+              transition-all duration-200 shadow-lg mt-1"
             style={{
               fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
               padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
             }}
           >
-            Create an account
-          </Link>
+            Continue
+          </button>
 
           <p
-            className="text-white/80 text-center"
+            className="text-white/60 text-center"
             style={{ fontSize: "clamp(0.75rem, 1vw, 0.875rem)" }}
           >
-            Already have an account?{" "}
+            Can't login?{" "}
             <Link
-              href="/login"
+              href="/forgot-password"
               className="text-white font-bold hover:underline underline-offset-2 transition-colors"
             >
-              Log in
+              Forgot password
             </Link>
           </p>
         </div>
