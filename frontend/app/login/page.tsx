@@ -110,7 +110,7 @@ export default function LoginPage() {
           }}
         >
           <Link
-            href="/add_your_email"
+            href="/register"
             className="w-full bg-white text-gray-900 font-semibold text-center
               rounded-2xl transition-all duration-200
               hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-lg"

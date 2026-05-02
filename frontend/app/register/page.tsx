@@ -6,7 +6,6 @@ import Link from "next/link";
 export default function RegisterPage() {
   return (
     <div className="min-h-screen w-full overflow-hidden relative bg-black">
-      {/* Left side */}
       <div className="hidden md:block absolute left-0 top-0 w-[50vw] h-full overflow-hidden">
         <Image
           src="/login_page_components/background_image.svg"
@@ -18,13 +17,10 @@ export default function RegisterPage() {
         />
         <div className="absolute inset-0 bg-blue-900/40 mix-blend-color-burn" />
       </div>
-
-      {/* Right panel */}
       <div
         className="absolute right-0 top-0 w-full md:w-[50vw] h-full flex flex-col items-center overflow-hidden"
         style={{ backgroundColor: "#3D4FE0", borderTopLeftRadius: "146px" }}
       >
-        {/* Mobile background */}
         <div className="absolute inset-0 md:hidden overflow-hidden">
           <Image
             src="/login_page_components/background_image.svg"
@@ -35,8 +31,6 @@ export default function RegisterPage() {
           />
           <div className="absolute inset-0 bg-black/40" />
         </div>
-
-        {/* Decorative logo */}
         <div
           className="hidden md:block absolute top-5 -right-10 w-[600px] h-[1000px] opacity-90 pointer-events-none select-none"
           style={{ zIndex: 0 }}
@@ -49,8 +43,6 @@ export default function RegisterPage() {
             priority
           />
         </div>
-
-        {/* Satu wrapper untuk semua konten - width 601px dan di-center */}
         <div
           className="relative flex flex-col w-full"
           style={{
@@ -60,7 +52,6 @@ export default function RegisterPage() {
             gap: "0px",
           }}
         >
-          {/* Header */}
           <div
             className="flex items-center w-full"
             style={{
@@ -90,8 +81,6 @@ export default function RegisterPage() {
               Create new account
             </h1>
           </div>
-
-          {/* Content */}
           <div
             className="flex flex-col w-full"
             style={{
@@ -101,7 +90,6 @@ export default function RegisterPage() {
               marginTop: `${167 - 71 - 96.16}px`,
             }}
           >
-            {/* Subtitle */}
             <p
               className="text-black text-center"
               style={{
@@ -116,17 +104,13 @@ export default function RegisterPage() {
             >
               Begin with creating new free account. This helps you keep your learning way easier.
             </p>
-
-            {/* Continue with Email */}
             <Link
-              href="/register/email"
+              href="/add_your_email"
               className="w-full bg-white text-gray-900 font-semibold text-base py-4 px-6 rounded-2xl text-center
               transition-all duration-200 hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-lg"
             >
               Continue with email
             </Link>
-
-            {/* OR divider */}
             <div className="flex items-center gap-3">
               <div className="flex-1 h-px bg-white/30" />
               <span className="text-white/60 text-xs">or</span>
