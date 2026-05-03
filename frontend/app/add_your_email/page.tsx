@@ -14,7 +14,7 @@ export default function AddYourEmailPage() {
   }, []);
 
   return (
-    <div className="h-screen w-full overflow-hidden relative">
+    <div className="h-screen w-full overflow-hidden relative bg-black">
       <div className="hidden md:block absolute left-0 top-0 w-[50vw] h-full overflow-hidden">
         <Image
           src="/login_page_components/background_image.svg"
@@ -28,7 +28,7 @@ export default function AddYourEmailPage() {
       </div>
       <div
         className="absolute right-0 top-0 w-full md:w-[50vw] overflow-hidden
-          flex flex-col items-start justify-end
+          flex flex-col items-start justify-start pt-40
           rounded-tl-[80px] md:rounded-tl-[120px]"
         style={{
           backgroundColor: "#3D4FE0",
@@ -68,6 +68,7 @@ export default function AddYourEmailPage() {
             priority
           />
         </div>
+        <div className="w-full">
         <div
           className="relative z-10 w-full flex items-center gap-3 mb-8"
           style={{
@@ -77,7 +78,7 @@ export default function AddYourEmailPage() {
             transitionDelay: "0.4s",
           }}
         >
-          <Link href="/login" className="text-black/80 hover:text-white transition-colors">
+          <Link href="/register" className="text-black/80 hover:text-white transition-colors">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
               <path d="M19 12H5M5 12l7 7M5 12l7-7" />
             </svg>
@@ -133,7 +134,7 @@ export default function AddYourEmailPage() {
           />
 
           <button
-            className="w-full bg-white/30 hover:bg-white/40 active:scale-[0.98]
+            className="w-full bg-[#CFB0F0] hover:bg-[#2B0058] active:scale-[0.98]
               text-white font-semibold text-center rounded-2xl
               transition-all duration-200 shadow-lg mt-1"
             style={{
@@ -156,6 +157,7 @@ export default function AddYourEmailPage() {
               Forgot password
             </Link>
           </p>
+          </div>
         </div>
       </div>
     </div>

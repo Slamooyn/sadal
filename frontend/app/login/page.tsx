@@ -13,7 +13,7 @@ export default function LoginPage() {
   }, []);
 
   return (
-    <div className="h-screen w-full overflow-hidden relative">
+    <div className="h-screen w-full overflow-hidden relative bg-black">
       <div className="hidden md:block absolute left-0 top-0 w-[50vw] h-full overflow-hidden">
         <Image
           src="/login_page_components/background_image.svg"
