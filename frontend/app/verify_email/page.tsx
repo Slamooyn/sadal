@@ -104,7 +104,7 @@ export default function VerifyYourEmailPage() {
                             transitionDelay: "0.4s",
                         }}
                     >
-                        <Link href="/register" className="text-black/80 hover:text-white transition-colors">
+                        <Link href="/add_your_email" className="text-black/80 hover:text-white transition-colors">
                             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
                                 <path d="M19 12H5M5 12l7 7M5 12l7-7" />
                             </svg>

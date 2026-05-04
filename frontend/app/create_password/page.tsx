@@ -3,6 +3,8 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { CheckCircle, Circle } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 export default function CreatePasswordPage() {
   const [mounted, setMounted] = useState(false);
@@ -12,6 +14,21 @@ export default function CreatePasswordPage() {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
   }, []);
+  const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
+
+  const rules = {
+    length: password.length >= 8,
+    number: /\d/.test(password),
+    symbol: /[^A-Za-z0-9]/.test(password),
+  };
+
+  const score = Object.values(rules).filter(Boolean).length;
+
+  const barColor =
+    score === 1 ? "bg-red-500" :
+      score === 2 ? "bg-yellow-400" :
+        score === 3 ? "bg-green-600" : "bg-gray-300";
 
   return (
     <div className="h-screen w-full overflow-hidden relative bg-black">
@@ -69,98 +86,102 @@ export default function CreatePasswordPage() {
           />
         </div>
         <div className="w-full">
-        <div
-          className="relative z-10 w-full flex items-center gap-3 mb-8"
-          style={{
-            transform: mounted ? "translateX(0)" : "translateX(-60px)",
-            opacity: mounted ? 1 : 0,
-            transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease",
-            transitionDelay: "0.4s",
-          }}
-        >
-          <Link href="/register" className="text-black/80 hover:text-white transition-colors">
-            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M5 12l7 7M5 12l7-7" />
-            </svg>
-          </Link>
-          <h2
-            className="text-black font-semibold"
-            style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)" }}
-          >
-            Add your email
-          </h2>
-          <span
-            className="text-black/50 font-light ml-1"
-            style={{ fontSize: "clamp(0.85rem, 1.4vw, 1.1rem)" }}
-          >
-            1 / 3
-          </span>
-        </div>
-        <div
-          className="relative z-10 w-full flex flex-col gap-4"
-          style={{
-            maxWidth: "90%",
-            transform: mounted ? "translateY(0)" : "translateY(40px)",
-            opacity: mounted ? 1 : 0,
-            transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease",
-            transitionDelay: "0.65s",
-          }}
-        >
-          <div className="flex gap-2 mb-2">
-            <div className="h-1 w-8 rounded-full bg-white" />
-            <div className="h-1 w-8 rounded-full bg-white/30" />
-            <div className="h-1 w-8 rounded-full bg-white/30" />
-          </div>
-
-          <label
-            className="text-white/80 text-sm font-medium"
-            style={{ fontSize: "clamp(0.75rem, 1vw, 0.95rem)" }}
-          >
-            Email
-          </label>
-
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="example@example.com"
-            className="w-full bg-white text-gray-900 rounded-2xl outline-none
-              placeholder:text-gray-400
-              focus:ring-2 focus:ring-white/50 transition-all"
+          <div
+            className="relative z-10 w-full flex items-center gap-3 mb-8"
             style={{
-              fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
-              padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
-            }}
-          />
-
-          <Link href="/verify_email" className="block">
-          <button 
-            className="w-full bg-[#CFB0F0] hover:bg-[#2B0058] active:scale-[0.98]
-              text-white font-semibold text-center rounded-2xl
-              transition-all duration-200 shadow-lg mt-1"
-            style={{
-              fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
-              padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
+              transform: mounted ? "translateX(0)" : "translateX(-60px)",
+              opacity: mounted ? 1 : 0,
+              transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease",
+              transitionDelay: "0.4s",
             }}
           >
-            Continue
-          </button>
-          </Link>
-          <p
-            className="text-white/60 text-center"
-            style={{ fontSize: "clamp(0.75rem, 1vw, 0.875rem)" }}
-          >
-            Can't login?{" "}
-            <Link
-              href="/forgot-password"
-              className="text-white font-bold hover:underline underline-offset-2 transition-colors"
-            >
-              Forgot password
+            <Link href="/verify_email" className="text-black/80 hover:text-white transition-colors">
+              <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M19 12H5M5 12l7 7M5 12l7-7" />
+              </svg>
             </Link>
-          </p>
+            <h2
+              className="text-black font-semibold"
+              style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)" }}
+            >
+              Create your password
+            </h2>
+            <span
+              className="text-black/50 font-light ml-1"
+              style={{ fontSize: "clamp(0.85rem, 1.4vw, 1.1rem)" }}
+            >
+              3 / 3
+            </span>
+          </div>
+          <div
+            className="relative z-10 w-full flex flex-col gap-4"
+            style={{
+              maxWidth: "90%",
+              transform: mounted ? "translateY(0)" : "translateY(40px)",
+              opacity: mounted ? 1 : 0,
+              transition: "transform 0.7s cubic-bezier(0.22, 1, 0.36, 1), opacity 0.7s ease",
+              transitionDelay: "0.65s",
+            }}
+          >
+            <div className="flex gap-2 mb-2">
+              <div className="h-1 w-8 rounded-full bg-white" />
+              <div className="h-1 w-8 rounded-full bg-white" />
+              <div className="h-1 w-8 rounded-full bg-white" />
+            </div>
+            <div className="space-y-4">
+              <label className="text-white/80 text-sm">Password</label>
+
+              <div className="relative">
+                <input
+                  type={show ? "text" : "password"}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="w-full rounded-2xl px-5 py-4 bg-white text-gray-900 outline-none"
+                />
+                <button
+                  onClick={() => setShow(!show)}
+                  className="absolute right-4 top-1/2 -translate-y-1/2 text-gray-500"
+                >
+                  {show ? <EyeOff /> : <Eye />}
+                </button>
+              </div>
+              <div className="w-full h-2 rounded-full bg-gray-300">
+                <div
+                  className={`h-2 rounded-full transition-all ${barColor}`}
+                  style={{ width: `${(score / 3) * 100}%` }}
+                />
+              </div>
+
+              <div className="space-y-2 text-sm">
+                <Rule ok={rules.length} label="8 characters minimum" />
+                <Rule ok={rules.number} label="a number" />
+                <Rule ok={rules.symbol} label="one symbol minimum" />
+              </div>
+
+              <button
+                disabled={score < 3}
+                className={`w-full py-4 hover:bg-[#2B0058] rounded-2xl text-white font-semibold transition
+        ${score === 3 ? "bg-purple-700" : "bg-purple-300"}`}
+              >
+                Continue
+              </button>
+            </div>
           </div>
         </div>
       </div>
     </div>
+  );function Rule({ ok, label }: { ok: boolean; label: string }) {
+  return (
+    <div className="flex items-center gap-2">
+      {ok ? (
+        <span className="text-green-500">✔</span>
+      ) : (
+        <span className="text-black-400">○</span>
+      )}
+      <span className={ok ? "text-black" : "text-black/100"}>
+        {label}
+      </span>
+    </div>
   );
+}
 }
