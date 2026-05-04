@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-export default function AddYourEmailPage() {
+export default function CreatePasswordPage() {
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
 

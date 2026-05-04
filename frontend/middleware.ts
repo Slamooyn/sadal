@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 
 const AUTH_COOKIE = "fashai_token";
-const PUBLIC_ROUTES = ["/login", "/register", "/add_your_email"];
+const PUBLIC_ROUTES = ["/login", "/register", "/add_your_email", "/verify_email","/create_password"];
 
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
