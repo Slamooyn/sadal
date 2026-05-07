@@ -5,8 +5,10 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { CheckCircle, Circle } from "lucide-react";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function CreatePasswordPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
 
@@ -160,6 +162,7 @@ export default function CreatePasswordPage() {
 
               <button
                 disabled={score < 3}
+                onClick={() => router.push("/welcome_page")}
                 className={`w-full py-4 hover:bg-[#2B0058] rounded-2xl text-white font-semibold transition
         ${score === 3 ? "bg-purple-700" : "bg-purple-300"}`}
               >
