@@ -1,0 +1,18 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(claude mcp *)",
+      "mcp__figma__get_metadata",
+      "mcp__figma__get_design_context",
+      "Bash(New-Item -ItemType Directory -Path \"C:\\\\Users\\\\ahmad badar\\\\Desktop\\\\UI\\\\semester 4\\\\projek\\\\project-fashai\\\\frontend\\\\app\\\\dashboard\" -Force)",
+      "Bash(Out-Null)",
+      "Bash(Write-Output \"done\")",
+      "PowerShell(cd \"C:\\\\Users\\\\ahmad badar\\\\Desktop\\\\UI\\\\semester 4\\\\projek\\\\project-fashai\\\\frontend\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"dashboard\" })",
+      "PowerShell(Get-Item *)",
+      "PowerShell(New-Item *)",
+      "PowerShell(cd \"C:\\\\Users\\\\ahmad badar\\\\Desktop\\\\UI\\\\semester 4\\\\projek\\\\project-fashai\\\\frontend\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"wardrobe|Sidebar|TopBar\" })",
+      "Bash(npx tsc *)",
+      "PowerShell(Rename-Item *)"
+    ]
+  }
+}
