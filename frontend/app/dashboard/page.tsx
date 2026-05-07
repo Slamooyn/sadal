@@ -40,7 +40,6 @@ export default function DashboardPage() {
           onSearchChange={setSearchValue}
         />
 
-        {/* Analytics Cards */}
         <div className="flex gap-5 mt-[26px] shrink-0">
           {ANALYTICS_CARDS.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
             <div
@@ -61,7 +60,6 @@ export default function DashboardPage() {
           ))}
         </div>
 
-        {/* Your Outfit For Today section */}
         <div className="flex flex-col items-center mt-10 pb-8">
           <h2
             className="font-extrabold text-[#4361ee] whitespace-nowrap"
@@ -70,10 +68,8 @@ export default function DashboardPage() {
             Your Outfit For Today !
           </h2>
 
-          {/* Carousel */}
           <div className="relative flex items-center justify-center w-full mt-6">
 
-            {/* Left (prev) arrow */}
             <button
               onClick={goPrev}
               className="absolute left-0 z-20 flex items-center justify-center hover:opacity-70 active:scale-95 transition-all duration-150 select-none"
@@ -84,10 +80,8 @@ export default function DashboardPage() {
               </svg>
             </button>
 
-            {/* Three outfit cards */}
             <div className="flex items-center">
 
-              {/* Left side card (previous) */}
               <div
                 className="bg-[#ebebeb] shrink-0"
                 style={{
@@ -101,7 +95,6 @@ export default function DashboardPage() {
                 }}
               />
 
-              {/* Center card (current — larger & in front) */}
               <div
                 className="bg-[#ebebeb] shrink-0"
                 style={{
@@ -114,7 +107,6 @@ export default function DashboardPage() {
                 }}
               />
 
-              {/* Right side card (next) */}
               <div
                 className="bg-[#ebebeb] shrink-0"
                 style={{
@@ -130,7 +122,6 @@ export default function DashboardPage() {
 
             </div>
 
-            {/* Right (next) arrow */}
             <button
               onClick={goNext}
               className="absolute right-0 z-20 flex items-center justify-center hover:opacity-70 active:scale-95 transition-all duration-150 select-none"

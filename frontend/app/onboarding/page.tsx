@@ -3,7 +3,6 @@
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type Step = 0 | 1 | 2 | 3;
 
@@ -13,7 +12,6 @@ interface Answers {
   uploadWardrobe: string;
 }
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
 
 function OptionButton({
   label,
@@ -32,7 +30,6 @@ function OptionButton({
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OnboardingPage() {
   const router = useRouter();
@@ -52,13 +49,15 @@ export default function OnboardingPage() {
   }
 
   function finish() {
+    localStorage.setItem("fashai_onboarding_completed", "true");
+    localStorage.removeItem("fashai_needs_onboarding");
+    localStorage.removeItem("fashai_signup_email");
+    localStorage.removeItem("fashai_is_new_user");
     router.push("/dashboard");
   }
 
   return (
     <div className="relative h-screen w-full overflow-hidden bg-[#4361ee] flex items-center justify-center">
-      {/* Fashai logo watermark — positioned per Figma (node 2093:390) */}
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         aria-hidden
         alt=""
@@ -72,10 +71,8 @@ export default function OnboardingPage() {
         }}
       />
 
-      {/* Step content */}
       <div className="relative z-10 flex flex-col items-center gap-[9px]">
 
-        {/* ── Step 0: Intro ─────────────────────────────── */}
         {step === 0 && (
           <>
             <p className="text-white text-[22px] leading-[1.6] mb-1 self-start">
@@ -86,7 +83,6 @@ export default function OnboardingPage() {
           </>
         )}
 
-        {/* ── Step 1: Favorite style ────────────────────── */}
         {step === 1 && (
           <>
             <p className="text-white text-[22px] leading-[1.6] mb-1 self-start">
@@ -107,7 +103,6 @@ export default function OnboardingPage() {
           </>
         )}
 
-        {/* ── Step 2: Mood ──────────────────────────────── */}
         {step === 2 && (
           <>
             <p className="text-white text-[22px] leading-[1.6] mb-1 self-start">
@@ -128,7 +123,6 @@ export default function OnboardingPage() {
           </>
         )}
 
-        {/* ── Step 3: Upload wardrobe ───────────────────── */}
         {step === 3 && (
           <>
             <p className="text-white text-[22px] leading-[1.6] mb-1 self-start">

@@ -31,7 +31,6 @@ export default function Sidebar() {
 
   return (
     <aside className="m-[30px] mr-0 w-[106px] shrink-0 rounded-[22px] bg-[#4361ee] flex flex-col items-center py-[30px]">
-      {/* eslint-disable-next-line @next/next/no-img-element */}
       <img src="/dashboard/logo.svg" alt="Fashai" className="size-[45px] object-contain shrink-0" />
 
       <nav className="flex flex-col flex-1 items-center justify-between mt-[84px] w-full">

@@ -12,7 +12,6 @@ import {
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 interface WardrobeItem {
   id: number;
@@ -21,7 +20,6 @@ interface WardrobeItem {
   bg: string;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const ANALYTICS_CARDS = [
   { label: "Orders Completed",     value: "300K", icon: CheckCircle, iconBg: "#dcfce7", iconColor: "#16a34a" },
@@ -66,7 +64,6 @@ const WARDROBE_ITEMS: Record<Category, WardrobeItem[]> = {
   ],
 };
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
 
 function ProductCard({
   item,
@@ -79,7 +76,6 @@ function ProductCard({
 }) {
   return (
     <div className="group relative rounded-[18px] overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
-      {/* Image placeholder */}
       <div
         className="h-[270px] flex items-center justify-center"
         style={{ backgroundColor: item.bg }}
@@ -91,7 +87,6 @@ function ProductCard({
         />
       </div>
 
-      {/* Favorite button — visible on hover */}
       <button
         onClick={(e) => { e.stopPropagation(); onToggleFavorite(); }}
         className="absolute top-3 right-3 size-8 rounded-full bg-white/85 backdrop-blur-sm flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-200 hover:bg-white shadow-sm"
@@ -103,7 +98,6 @@ function ProductCard({
         />
       </button>
 
-      {/* Blue footer */}
       <div className="bg-[#4361ee] h-[66px] flex items-center justify-between px-4">
         <div className="flex flex-col min-w-0">
           <span className="text-white text-[14px] font-semibold leading-tight truncate">
@@ -123,7 +117,6 @@ function ProductCard({
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function WardrobePage() {
   const [searchValue, setSearchValue]       = useState("");
@@ -158,7 +151,6 @@ export default function WardrobePage() {
         className="flex-1 flex flex-col min-h-0 overflow-y-auto"
         style={{ padding: "30px 30px 30px 54px" }}
       >
-        {/* Top Bar */}
         <TopBar
           userName="Risyad"
           showGreeting={false}
@@ -166,7 +158,6 @@ export default function WardrobePage() {
           onSearchChange={setSearchValue}
         />
 
-        {/* Analytics Cards */}
         <div className="flex gap-5 mt-[26px] shrink-0">
           {ANALYTICS_CARDS.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
             <div
@@ -187,10 +178,8 @@ export default function WardrobePage() {
           ))}
         </div>
 
-        {/* ── Wardrobe Container ────────────────────────────────────────────── */}
         <div className="bg-white rounded-[22px] mt-5 flex-1 min-h-0 flex flex-col overflow-hidden mb-[30px]">
 
-          {/* Header */}
           <div className="px-[57px] pt-[28px] shrink-0">
             <p className="text-[#b9b9b9] text-[32px] font-medium leading-tight">
               Wardrobe
@@ -200,7 +189,6 @@ export default function WardrobePage() {
             </p>
           </div>
 
-          {/* Category tabs — 3 only */}
           <div className="flex items-center gap-2 px-[57px] mt-5 shrink-0">
             {CATEGORIES.map((cat) => (
               <button
@@ -218,7 +206,6 @@ export default function WardrobePage() {
             ))}
           </div>
 
-          {/* Product grid — all items, no pagination */}
           <div className="flex-1 overflow-y-auto px-[57px] pt-5 pb-6 min-h-0">
             {displayedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">

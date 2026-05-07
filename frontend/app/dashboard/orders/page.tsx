@@ -5,7 +5,6 @@ import { ChevronDown, CheckCircle, Clock, CircleX, Shirt } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 
 type OrderStatus = "Paid" | "Not yet paid" | "Cancelled";
 
@@ -17,7 +16,6 @@ interface Order {
   time: string;
 }
 
-// ─── Data ─────────────────────────────────────────────────────────────────────
 
 const ANALYTICS_CARDS = [
   { label: "Orders Completed",     value: "300K", icon: CheckCircle, iconBg: "#dcfce7", iconColor: "#16a34a" },
@@ -42,7 +40,6 @@ const STATUS_STYLE: Record<OrderStatus, { bg: string; color: string }> = {
   "Cancelled":    { bg: "#ffdede", color: "#d02323" },
 };
 
-// ─── Sub-components ────────────────────────────────────────────────────────────
 
 function StatusBadge({ status }: { status: OrderStatus }) {
   const { bg, color } = STATUS_STYLE[status];
@@ -65,7 +62,6 @@ function ProductPlaceholder() {
   );
 }
 
-// ─── Page ──────────────────────────────────────────────────────────────────────
 
 export default function OrdersPage() {
   const [searchValue, setSearchValue] = useState("");
@@ -91,7 +87,6 @@ export default function OrdersPage() {
         className="flex-1 flex flex-col min-h-0 overflow-y-auto"
         style={{ padding: "30px 30px 30px 54px" }}
       >
-        {/* Top Bar — no greeting, avatar on right */}
         <TopBar
           userName="Risyad"
           showGreeting={false}
@@ -99,7 +94,6 @@ export default function OrdersPage() {
           onSearchChange={setSearchValue}
         />
 
-        {/* Analytics Cards */}
         <div className="flex gap-5 mt-[26px] shrink-0">
           {ANALYTICS_CARDS.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
             <div
@@ -120,10 +114,8 @@ export default function OrdersPage() {
           ))}
         </div>
 
-        {/* Order Stats */}
         <div className="flex flex-col gap-[19px] mt-5 flex-1 min-h-0 pb-[30px]">
 
-          {/* Heading + Sort */}
           <div className="flex flex-col gap-1 shrink-0">
             <div className="flex items-center justify-between">
               <span className="text-black text-[23px] font-semibold leading-normal">Order Stats</span>
@@ -170,10 +162,8 @@ export default function OrdersPage() {
             </span>
           </div>
 
-          {/* Table */}
           <div className="flex flex-col flex-1 min-h-0 overflow-hidden rounded-[7.6px] shadow-sm">
 
-            {/* Header */}
             <div className="bg-[#eeeeee] px-7 py-5 shrink-0 rounded-t-[7.6px]">
               <div className="flex items-center text-[15px] font-medium text-black">
                 <span style={{ width: 80 }}>Product</span>
@@ -184,7 +174,6 @@ export default function OrdersPage() {
               </div>
             </div>
 
-            {/* Body */}
             <div className="bg-white flex-1 overflow-y-auto rounded-b-[7.6px]">
               {ORDERS.map((order, i) => (
                 <div key={order.id}>

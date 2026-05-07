@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 
-export default function LoginPage() {
+export default function WelcomePage() {
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {

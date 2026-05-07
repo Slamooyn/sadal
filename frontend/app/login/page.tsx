@@ -5,13 +5,17 @@ import Link from "next/link";
 import { signIn } from "next-auth/react";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
+import { useRouter } from "next/navigation";
 
 export default function LoginPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [loadingGoogle, setLoadingGoogle] = useState(false);
+  const [loadingLogin, setLoadingLogin] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
@@ -20,7 +24,37 @@ export default function LoginPage() {
 
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
-    await signIn("google", { callbackUrl: "/onboarding" });
+    await signIn("google", { callbackUrl: "/auth_redirect" });
+  };
+
+  const handleLogin = async () => {
+    if (!email.trim() || !password.trim()) {
+      setError("Please enter both email and password");
+      return;
+    }
+    setError("");
+    setLoadingLogin(true);
+
+    try {
+      const res = await fetch("/api/users", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Login failed");
+        setLoadingLogin(false);
+        return;
+      }
+
+      router.push("/dashboard");
+    } catch {
+      setError("Network error. Please try again.");
+      setLoadingLogin(false);
+    }
   };
 
   return (
@@ -110,7 +144,6 @@ export default function LoginPage() {
               transitionDelay: "0.65s",
             }}
           >
-            {/* Email field */}
             <div className="flex flex-col gap-1">
               <label
                 className="text-white/80 text-sm font-medium"
@@ -133,7 +166,6 @@ export default function LoginPage() {
               />
             </div>
 
-            {/* Password field */}
             <div className="flex flex-col gap-1">
               <label
                 className="text-white/80 text-sm font-medium"
@@ -166,17 +198,31 @@ export default function LoginPage() {
               </div>
             </div>
 
-            {/* Login button */}
+            {error && (
+              <p className="text-red-300 text-sm -mt-1">{error}</p>
+            )}
+
             <button
+              onClick={handleLogin}
+              disabled={loadingLogin}
               className="w-full bg-[#CFB0F0] hover:bg-[#2B0058] active:scale-[0.98]
                 text-white font-semibold text-center rounded-2xl
-                transition-all duration-200 shadow-lg mt-1"
+                transition-all duration-200 shadow-lg mt-1
+                disabled:opacity-60 disabled:cursor-not-allowed"
               style={{
                 fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
                 padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
               }}
             >
-              Log in
+              {loadingLogin ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                  </svg>
+                  Logging in...
+                </span>
+              ) : "Log in"}
             </button>
 
             <div className="flex items-center gap-3">
@@ -185,7 +231,6 @@ export default function LoginPage() {
               <div className="flex-1 h-px bg-white/30" />
             </div>
 
-            {/* Google sign-in button */}
             <button
               onClick={handleGoogleSignIn}
               disabled={loadingGoogle}

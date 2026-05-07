@@ -3,15 +3,56 @@
 import Image from "next/image";
 import Link from "next/link";
 import { useState, useEffect } from "react";
+import { useRouter } from "next/navigation";
 
 export default function AddYourEmailPage() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
     return () => clearTimeout(t);
   }, []);
+
+  const handleContinue = async () => {
+    if (!email.trim()) {
+      setError("Please enter your email address");
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      setError("Please enter a valid email address");
+      return;
+    }
+
+    setError("");
+    setLoading(true);
+
+    try {
+      const res = await fetch("/api/verify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email }),
+      });
+
+      const data = await res.json();
+
+      if (!res.ok) {
+        setError(data.error || "Failed to send verification code");
+        setLoading(false);
+        return;
+      }
+
+      localStorage.setItem("fashai_signup_email", email);
+
+      router.push(`/verify_email?email=${encodeURIComponent(email)}`);
+    } catch {
+      setError("Network error. Please try again.");
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="h-screen w-full overflow-hidden relative bg-black">
@@ -122,35 +163,46 @@ export default function AddYourEmailPage() {
           <input
             type="email"
             value={email}
-            onChange={(e) => setEmail(e.target.value)}
+            onChange={(e) => {
+              setEmail(e.target.value);
+              if (error) setError("");
+            }}
             placeholder="example@example.com"
-            className="w-full bg-white text-gray-900 rounded-2xl outline-none
+            className={`w-full bg-white text-gray-900 rounded-2xl outline-none
               placeholder:text-gray-400
-              focus:ring-2 focus:ring-white/50 transition-all"
+              focus:ring-2 focus:ring-white/50 transition-all
+              ${error ? "ring-2 ring-red-400" : ""}`}
             style={{
               fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
               padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
             }}
+            onKeyDown={(e) => e.key === "Enter" && handleContinue()}
           />
 
-          <Link href="/verify_email" className="block">
-          <button 
+          {error && (
+            <p className="text-red-300 text-sm -mt-2">{error}</p>
+          )}
+
+          <button
+            onClick={handleContinue}
+            disabled={loading}
             className="w-full bg-[#CFB0F0] hover:bg-[#2B0058] active:scale-[0.98]
               text-white font-semibold text-center rounded-2xl
-              transition-all duration-200 shadow-lg mt-1"
+              transition-all duration-200 shadow-lg mt-1
+              disabled:opacity-60 disabled:cursor-not-allowed"
             style={{
               fontSize: "clamp(0.875rem, 1.2vw, 1rem)",
               padding: "clamp(0.875rem, 1.8vh, 1.25rem) 1.5rem",
             }}
           >
-            Continue
+            {loading ? "Sending..." : "Continue"}
           </button>
-          </Link>
+
           <p
             className="text-white/60 text-center"
             style={{ fontSize: "clamp(0.75rem, 1vw, 0.875rem)" }}
           >
-            Can't login?{" "}
+            Can&apos;t login?{" "}
             <Link
               href="/forgot-password"
               className="text-white font-bold hover:underline underline-offset-2 transition-colors"

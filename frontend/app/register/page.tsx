@@ -10,7 +10,7 @@ export default function RegisterPage() {
 
   const handleGoogleSignIn = async () => {
     setLoadingProvider("google");
-    await signIn("google", { callbackUrl: "/onboarding" });
+    await signIn("google", { callbackUrl: "/auth_redirect" });
   };
   return (
     <div className="min-h-screen w-full overflow-hidden relative bg-black">
@@ -125,7 +125,6 @@ export default function RegisterPage() {
               <div className="flex-1 h-px bg-white/30" />
             </div>
 
-            {/* Apple */}
             <button className="w-full bg-white text-gray-900 font-medium text-base py-4 px-6 rounded-2xl
               flex items-center justify-center gap-3
               transition-all duration-200 hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-lg">
@@ -135,7 +134,6 @@ export default function RegisterPage() {
               Continue with Apple
             </button>
 
-            {/* Facebook */}
             <button className="w-full bg-white text-gray-900 font-medium text-base py-4 px-6 rounded-2xl
               flex items-center justify-center gap-3
               transition-all duration-200 hover:bg-gray-100 hover:scale-[1.02] active:scale-[0.98] shadow-lg">
@@ -145,7 +143,6 @@ export default function RegisterPage() {
               Continue with Facebook
             </button>
 
-            {/* Google */}
             <button
               onClick={handleGoogleSignIn}
               disabled={loadingProvider === "google"}
