@@ -1,9 +1,22 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
+import Image from "next/image";
 import { CheckCircle, Clock, CircleX, Shirt } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
+
+// ─── Types ─────────────────────────────────────────────────────────────────────
+
+interface OutfitCard {
+  name: string;
+  description: string;
+  items: string[];
+  imageQuery: string;
+  imageUrl: string | null; // null = photo still loading or unavailable
+}
+
+// ─── Data ──────────────────────────────────────────────────────────────────────
 
 const ANALYTICS_CARDS = [
   { label: "Orders Completed",     value: "300K", icon: CheckCircle, iconBg: "#dcfce7", iconColor: "#16a34a" },
@@ -12,18 +25,152 @@ const ANALYTICS_CARDS = [
   { label: "Total Outfit Created", value: "350K", icon: Shirt,       iconBg: "#ede9fe", iconColor: "#7c3aed" },
 ];
 
-const TOTAL_OUTFITS = 5;
+// ─── Sub-components ─────────────────────────────────────────────────────────────
+
+// Full-card shimmer shown while Gemini is loading
+function CardShimmer() {
+  return (
+    <div className="w-full h-full flex flex-col animate-pulse">
+      <div className="bg-gray-300" style={{ flex: "0 0 75%", width: "100%" }} />
+      <div className="flex items-center justify-center px-5" style={{ flex: "0 0 25%" }}>
+        <div className="h-5 w-32 bg-gray-300 rounded-full" />
+      </div>
+    </div>
+  );
+}
+
+// Photo + title card (used for all 3 positions)
+function OutfitCardView({
+  outfit,
+  cardHeight,
+  titleFontSize,
+  isSide = false,
+}: {
+  outfit: OutfitCard;
+  cardHeight: number;
+  titleFontSize: number;
+  isSide?: boolean;
+}) {
+  const photoHeight = Math.round(cardHeight * 0.75);
+
+  return (
+    <div
+      className="w-full h-full flex flex-col"
+      style={{ opacity: isSide ? 0.85 : 1 }}
+    >
+      {/* Photo — 75% of card height */}
+      <div
+        style={{
+          position: "relative",
+          width: "100%",
+          height: photoHeight,
+          flexShrink: 0,
+          backgroundColor: "#d9d9d9",
+        }}
+      >
+        {outfit.imageUrl ? (
+          <Image
+            src={outfit.imageUrl}
+            alt={outfit.name}
+            fill
+            style={{ objectFit: "cover" }}
+            sizes={isSide ? "311px" : "349px"}
+            priority={!isSide}
+          />
+        ) : (
+          <div className="w-full h-full animate-pulse bg-gray-300" />
+        )}
+      </div>
+
+      {/* Title — 25% of card height */}
+      <div
+        className="flex items-center justify-center px-5"
+        style={{ flex: 1 }}
+      >
+        <h3
+          className="font-bold text-center text-gray-800 leading-tight"
+          style={{ fontSize: titleFontSize }}
+        >
+          {outfit.name}
+        </h3>
+      </div>
+    </div>
+  );
+}
+
+// ─── Page ───────────────────────────────────────────────────────────────────────
 
 export default function DashboardPage() {
   const [searchValue, setSearchValue]   = useState("");
   const [currentIndex, setCurrentIndex] = useState(0);
+  const [outfits, setOutfits]           = useState<OutfitCard[]>([]);
+  const [loading, setLoading]           = useState(true);  // true while Gemini responds
+  const [error, setError]               = useState<string | null>(null);
+
+  useEffect(() => {
+    const mood  = localStorage.getItem("fashai_mood")  ?? "";
+    const style = localStorage.getItem("fashai_style") ?? "";
+
+    fetch("/api/recommendation", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ mood, style }),
+    })
+      .then((res) => {
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        return res.json();
+      })
+      .then((data) => {
+        if (!Array.isArray(data.outfits) || data.outfits.length === 0) {
+          throw new Error("Empty outfits");
+        }
+
+        // Phase 1 done — show cards with title + photo shimmer immediately
+        const base: OutfitCard[] = data.outfits.map(
+          (o: { name: string; description: string; items: string[]; imageQuery: string }) => ({
+            ...o,
+            imageUrl: null,
+          })
+        );
+        setOutfits(base);
+        setLoading(false);
+
+        // Phase 2 — fetch all photos in parallel, update imageUrl as they arrive
+        Promise.all(
+          base.map((outfit) =>
+            fetch("/api/photos", {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ query: outfit.imageQuery }),
+            })
+              .then((r) => r.json())
+              .then((d) => (typeof d.url === "string" ? d.url : null))
+              .catch(() => null)
+          )
+        ).then((urls) => {
+          setOutfits((prev) =>
+            prev.map((o, i) => ({ ...o, imageUrl: urls[i] ?? null }))
+          );
+        });
+      })
+      .catch(() => {
+        setError("Tidak dapat memuat rekomendasi outfit.");
+        setLoading(false);
+      });
+  }, []);
+
+  const total = outfits.length;
 
   function goPrev() {
-    setCurrentIndex((i) => (i - 1 + TOTAL_OUTFITS) % TOTAL_OUTFITS);
+    if (total > 0) setCurrentIndex((i) => (i - 1 + total) % total);
   }
   function goNext() {
-    setCurrentIndex((i) => (i + 1) % TOTAL_OUTFITS);
+    if (total > 0) setCurrentIndex((i) => (i + 1) % total);
   }
+
+  const prevOutfit    = total > 0 ? outfits[(currentIndex - 1 + total) % total] : null;
+  const currentOutfit = total > 0 ? outfits[currentIndex]                        : null;
+  const nextOutfit    = total > 0 ? outfits[(currentIndex + 1) % total]          : null;
 
   return (
     <div className="flex h-screen bg-[#f4f5f8] overflow-hidden">
@@ -40,6 +187,7 @@ export default function DashboardPage() {
           onSearchChange={setSearchValue}
         />
 
+        {/* Analytics Cards */}
         <div className="flex gap-5 mt-[26px] shrink-0">
           {ANALYTICS_CARDS.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
             <div
@@ -60,6 +208,7 @@ export default function DashboardPage() {
           ))}
         </div>
 
+        {/* Your Outfit For Today section */}
         <div className="flex flex-col items-center mt-10 pb-8">
           <h2
             className="font-extrabold text-[#4361ee] whitespace-nowrap"
@@ -68,11 +217,18 @@ export default function DashboardPage() {
             Your Outfit For Today !
           </h2>
 
+          {error && (
+            <p className="mt-3 text-sm text-red-500">{error}</p>
+          )}
+
+          {/* Carousel */}
           <div className="relative flex items-center justify-center w-full mt-6">
 
+            {/* Left (prev) arrow */}
             <button
               onClick={goPrev}
-              className="absolute left-0 z-20 flex items-center justify-center hover:opacity-70 active:scale-95 transition-all duration-150 select-none"
+              disabled={loading}
+              className="absolute left-0 z-20 flex items-center justify-center hover:opacity-70 active:scale-95 transition-all duration-150 select-none disabled:opacity-30"
               title="Previous outfit"
             >
               <svg width="39" height="51" viewBox="0 0 39 51" xmlns="http://www.w3.org/2000/svg">
@@ -80,10 +236,12 @@ export default function DashboardPage() {
               </svg>
             </button>
 
+            {/* Three outfit cards */}
             <div className="flex items-center">
 
+              {/* Left side card (previous) */}
               <div
-                className="bg-[#ebebeb] shrink-0"
+                className="bg-[#ebebeb] shrink-0 overflow-hidden"
                 style={{
                   width: 311,
                   height: 500,
@@ -93,10 +251,22 @@ export default function DashboardPage() {
                   zIndex: 0,
                   boxShadow: "0px 3.571px 12.321px 0px rgba(0,0,0,0.25)",
                 }}
-              />
+              >
+                {loading ? (
+                  <CardShimmer />
+                ) : prevOutfit ? (
+                  <OutfitCardView
+                    outfit={prevOutfit}
+                    cardHeight={500}
+                    titleFontSize={16}
+                    isSide
+                  />
+                ) : null}
+              </div>
 
+              {/* Center card (current — larger & in front) */}
               <div
-                className="bg-[#ebebeb] shrink-0"
+                className="bg-[#ebebeb] shrink-0 overflow-hidden"
                 style={{
                   width: 349,
                   height: 560,
@@ -105,10 +275,21 @@ export default function DashboardPage() {
                   zIndex: 10,
                   boxShadow: "0px 4px 33.5px 0px rgba(0,0,0,0.25)",
                 }}
-              />
+              >
+                {loading ? (
+                  <CardShimmer />
+                ) : currentOutfit ? (
+                  <OutfitCardView
+                    outfit={currentOutfit}
+                    cardHeight={560}
+                    titleFontSize={22}
+                  />
+                ) : null}
+              </div>
 
+              {/* Right side card (next) */}
               <div
-                className="bg-[#ebebeb] shrink-0"
+                className="bg-[#ebebeb] shrink-0 overflow-hidden"
                 style={{
                   width: 311,
                   height: 500,
@@ -118,13 +299,26 @@ export default function DashboardPage() {
                   zIndex: 0,
                   boxShadow: "0px 3.571px 12.321px 0px rgba(0,0,0,0.25)",
                 }}
-              />
+              >
+                {loading ? (
+                  <CardShimmer />
+                ) : nextOutfit ? (
+                  <OutfitCardView
+                    outfit={nextOutfit}
+                    cardHeight={500}
+                    titleFontSize={16}
+                    isSide
+                  />
+                ) : null}
+              </div>
 
             </div>
 
+            {/* Right (next) arrow */}
             <button
               onClick={goNext}
-              className="absolute right-0 z-20 flex items-center justify-center hover:opacity-70 active:scale-95 transition-all duration-150 select-none"
+              disabled={loading}
+              className="absolute right-0 z-20 flex items-center justify-center hover:opacity-70 active:scale-95 transition-all duration-150 select-none disabled:opacity-30"
               title="Next outfit"
             >
               <svg width="39" height="51" viewBox="0 0 39 51" xmlns="http://www.w3.org/2000/svg">
@@ -133,7 +327,6 @@ export default function DashboardPage() {
             </button>
 
           </div>
-
         </div>
       </main>
     </div>

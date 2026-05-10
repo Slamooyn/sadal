@@ -1,14 +1,7 @@
 import NextAuth from "next-auth";
 import Google from "next-auth/providers/google";
-import crypto from "crypto";
-
-const devSecret = crypto.randomBytes(32).toString("base64");
-const secret = process.env.NODE_ENV === "production"
-  ? process.env.AUTH_SECRET
-  : devSecret;
 
 export const { handlers, signIn, signOut, auth } = NextAuth({
-  secret,
   providers: [
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,

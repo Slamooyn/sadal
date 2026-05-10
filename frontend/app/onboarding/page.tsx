@@ -49,6 +49,8 @@ export default function OnboardingPage() {
   }
 
   function finish() {
+    localStorage.setItem("fashai_mood",  answers.mood);
+    localStorage.setItem("fashai_style", answers.style);
     localStorage.setItem("fashai_onboarding_completed", "true");
     localStorage.removeItem("fashai_needs_onboarding");
     localStorage.removeItem("fashai_signup_email");

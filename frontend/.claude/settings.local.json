@@ -12,7 +12,13 @@
       "PowerShell(New-Item *)",
       "PowerShell(cd \"C:\\\\Users\\\\ahmad badar\\\\Desktop\\\\UI\\\\semester 4\\\\projek\\\\project-fashai\\\\frontend\"; npx tsc --noEmit 2>&1 | Where-Object { $_ -match \"wardrobe|Sidebar|TopBar\" })",
       "Bash(npx tsc *)",
-      "PowerShell(Rename-Item *)"
+      "PowerShell(Rename-Item *)",
+      "Bash(Get-ChildItem *)",
+      "Bash(node -e \"const p = require\\('./package.json'\\); console.log\\(JSON.stringify\\(p.dependencies, null, 2\\)\\)\")",
+      "Bash(node -e \"require\\('dotenv'\\).config\\({path:'.env.local'}\\); console.log\\('KEY exists:', !!process.env.GEMINI_API_KEY, '| prefix:', process.env.GEMINI_API_KEY?.slice\\(0,8\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const env=fs.readFileSync\\('.env.local','utf8'\\); const key=env.match\\(/GEMINI_API_KEY=\\(.+\\)/\\)?.[1]?.trim\\(\\); console.log\\('KEY exists:', !!key, '| prefix:', key?.slice\\(0,8\\)\\)\")",
+      "Bash(node -e \"const fs=require\\('fs'\\); const env=fs.readFileSync\\('.env.local','utf8'\\); const key=env.match\\(/PEXELS_API_KEY=\\(.+\\)/\\)?.[1]?.trim\\(\\); console.log\\('PEXELS key exists:', !!key, '| prefix:', key?.slice\\(0,8\\)\\)\")",
+      "Bash(Select-String \"env\")"
     ]
   }
 }
