@@ -115,6 +115,7 @@ export default function DashboardPage() {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ mood, style }),
+      cache: "no-store",
     })
       .then((res) => {
         if (!res.ok) throw new Error(`HTTP ${res.status}`);

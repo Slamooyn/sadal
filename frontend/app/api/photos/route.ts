@@ -8,9 +8,17 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: null });
     }
 
+    // Ensure Pexels always returns fashion-relevant photos
+    const raw = query.trim();
+    const lower = raw.toLowerCase();
+    const fashionQuery =
+      lower.includes("fashion") || lower.includes("outfit") || lower.includes("clothing")
+        ? raw
+        : `${raw} fashion outfit clothing`;
+
     const url =
       `https://api.pexels.com/v1/search` +
-      `?query=${encodeURIComponent(query)}` +
+      `?query=${encodeURIComponent(fashionQuery)}` +
       `&per_page=1&orientation=portrait`;
 
     const res = await fetch(url, {
@@ -26,7 +34,7 @@ export async function POST(request: Request) {
     const data = await res.json();
     const photoUrl: string | null = data.photos?.[0]?.src?.portrait ?? null;
 
-    console.log(`[photos] "${query}" → ${photoUrl ? "found" : "not found"}`);
+    console.log(`[photos] "${fashionQuery}" → ${photoUrl ? "found" : "not found"}`);
     return NextResponse.json({ url: photoUrl });
   } catch (err) {
     console.error("[photos] error:", err);
