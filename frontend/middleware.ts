@@ -6,6 +6,9 @@ const NEXTAUTH_SESSION_COOKIE = "authjs.session-token";
 
 const AUTH_ONLY_PAGES = ["/login", "/register", "/add_your_email", "/verify_email", "/create_password", "/welcome_page", "/welcome_animation"];
 
+// Pages that require authentication (handled by the catch-all below)
+// /settings/*, /dashboard/* are protected by default
+
 const ALWAYS_PUBLIC = ["/welcome_animation", "/auth_redirect", "/onboarding"];
 
 export function middleware(request: NextRequest) {

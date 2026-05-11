@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
+import { supabase } from "../../../lib/supabase";
 
 const users = new Map<string, { email: string; passwordHash: string; salt: string }>();
 
@@ -23,6 +24,28 @@ export async function POST(request: Request) {
     const passwordHash = hashPassword(password, salt);
 
     users.set(email, { email, passwordHash, salt });
+
+    // Also create profile in Supabase
+    try {
+      const { error } = await supabase.from("profiles").upsert(
+        {
+          id: email,
+          email,
+          username: email.split("@")[0],
+          bio: "",
+          avatar_url: null,
+          provider: "credentials",
+        },
+        { onConflict: "id", ignoreDuplicates: true }
+      );
+      if (error) {
+        console.error("[supabase] profile insert error:", error.message);
+      } else {
+        console.log(`[supabase] ✅ profile created for ${email}`);
+      }
+    } catch (err) {
+      console.error("[supabase] profile insert failed:", err);
+    }
 
     console.log(`\n✅ User registered: ${email}\n`);
 
