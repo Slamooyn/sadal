@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { LogOut, Camera, Check, AlertCircle, Loader2 } from "lucide-react";
 import Sidebar from "../../dashboard/components/Sidebar";
 
@@ -48,7 +48,16 @@ function Toast({
 /* ── Main Page ──────────────────────────────────────────────────────────────── */
 export default function ProfileSettingPage() {
   const router = useRouter();
-  const { data: session, status: sessionStatus } = useSession();
+  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [sessionStatus, setSessionStatus] = useState("loading");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setSessionUser(user);
+      setSessionStatus(user ? "authenticated" : "unauthenticated");
+    });
+  }, []);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
@@ -75,7 +84,7 @@ export default function ProfileSettingPage() {
   );
 
   // Determine user email
-  const userEmail = session?.user?.email || null;
+  const userEmail = sessionUser?.email || null;
 
   // Fetch profile from Supabase via API
   useEffect(() => {
@@ -98,8 +107,8 @@ export default function ProfileSettingPage() {
       .finally(() => setLoading(false));
   }, [sessionStatus, userEmail, showToast]);
 
-  const displayName = profile?.username || session?.user?.name || "User";
-  const displayAvatar = avatarPreview || session?.user?.image || null;
+  const displayName = profile?.username || sessionUser?.user_metadata?.full_name || sessionUser?.email?.split('@')[0] || "User";
+  const displayAvatar = avatarPreview || sessionUser?.user_metadata?.avatar_url || null;
 
   async function updateField(field: string, value: string) {
     const res = await fetch("/api/profile", {
@@ -180,8 +189,8 @@ export default function ProfileSettingPage() {
 
   async function handleLogout() {
     try {
-      await fetch("/api/users", { method: "DELETE" });
-      await signOut({ redirect: false });
+      const supabase = createClient();
+      await supabase.auth.signOut();
       localStorage.removeItem("fashai_onboarding_completed");
       localStorage.removeItem("fashai_is_new_user");
       localStorage.removeItem("fashai_needs_onboarding");

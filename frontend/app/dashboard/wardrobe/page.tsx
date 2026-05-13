@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   CheckCircle,
   Clock,
@@ -8,16 +8,20 @@ import {
   Shirt,
   Heart,
   Plus,
+  Upload,
 } from "lucide-react";
 import Sidebar from "../components/Sidebar";
 import TopBar from "../components/TopBar";
+import UploadModal from "./components/UploadModal";
+import { createClient } from "@/lib/supabase/client";
 
 
 interface WardrobeItem {
   id: number;
   name: string;
-  brand: string;
-  bg: string;
+  type: string;
+  theme: string;
+  processed_image_url: string;
 }
 
 
@@ -28,41 +32,7 @@ const ANALYTICS_CARDS = [
   { label: "Total Outfit Created", value: "350K", icon: Shirt,       iconBg: "#ede9fe", iconColor: "#7c3aed" },
 ];
 
-const CATEGORIES = ["Winter Clothes", "Summer Clothes", "Sport Clothes"] as const;
-type Category = typeof CATEGORIES[number];
-
-const WARDROBE_ITEMS: Record<Category, WardrobeItem[]> = {
-  "Winter Clothes": [
-    { id: 1,  name: "Wool Coat",      brand: "Zara",           bg: "#e0e7ff" },
-    { id: 2,  name: "Puffer Jacket",  brand: "H&M",            bg: "#fce7f3" },
-    { id: 3,  name: "Knit Sweater",   brand: "Uniqlo",         bg: "#fef3c7" },
-    { id: 4,  name: "Thermal Set",    brand: "Nike",           bg: "#dcfce7" },
-    { id: 5,  name: "Fleece Hoodie",  brand: "Adidas",         bg: "#dbeafe" },
-    { id: 6,  name: "Wool Cardigan",  brand: "M&S",            bg: "#fce7f3" },
-    { id: 7,  name: "Turtleneck",     brand: "COS",            bg: "#ede9fe" },
-    { id: 8,  name: "Down Vest",      brand: "The North Face", bg: "#fef9c3" },
-  ],
-  "Summer Clothes": [
-    { id: 9,  name: "Sundress",       brand: "Zara",           bg: "#fce7f3" },
-    { id: 10, name: "Linen Shirt",    brand: "H&M",            bg: "#dbeafe" },
-    { id: 11, name: "Shorts",         brand: "Nike",           bg: "#dcfce7" },
-    { id: 12, name: "Bikini Set",     brand: "Roxy",           bg: "#ede9fe" },
-    { id: 13, name: "Summer Blouse",  brand: "Mango",          bg: "#fef3c7" },
-    { id: 14, name: "Slip Dress",     brand: "Zara",           bg: "#fce7f3" },
-    { id: 15, name: "Tank Top",       brand: "Uniqlo",         bg: "#e0e7ff" },
-    { id: 16, name: "Swim Trunks",    brand: "Quiksilver",     bg: "#dcfce7" },
-  ],
-  "Sport Clothes": [
-    { id: 17, name: "Running Jacket", brand: "Nike",           bg: "#dbeafe" },
-    { id: 18, name: "Leggings",       brand: "Adidas",         bg: "#e0e7ff" },
-    { id: 19, name: "Sports Bra",     brand: "Under Armour",   bg: "#dcfce7" },
-    { id: 20, name: "Track Pants",    brand: "Puma",           bg: "#ede9fe" },
-    { id: 21, name: "Compression Top",brand: "Nike",           bg: "#fef3c7" },
-    { id: 22, name: "Gym Shorts",     brand: "Adidas",         bg: "#fce7f3" },
-    { id: 23, name: "Sports Hoodie",  brand: "Champion",       bg: "#dbeafe" },
-    { id: 24, name: "Training Vest",  brand: "Puma",           bg: "#fef9c3" },
-  ],
-};
+const CATEGORIES = ["All", "Shirt", "Pants", "Shoes"];
 
 
 function ProductCard({
@@ -77,14 +47,17 @@ function ProductCard({
   return (
     <div className="group relative rounded-[18px] overflow-hidden cursor-pointer shadow-sm hover:shadow-xl transition-all duration-300 hover:-translate-y-0.5">
       <div
-        className="h-[270px] flex items-center justify-center"
-        style={{ backgroundColor: item.bg }}
+        className="h-[270px] flex items-center justify-center bg-gray-50 relative"
       >
-        <Shirt
-          size={72}
-          strokeWidth={0.8}
-          className="text-gray-300 group-hover:scale-110 transition-transform duration-300"
-        />
+        {item.processed_image_url ? (
+          <img src={item.processed_image_url} alt={item.name} className="w-full h-full object-contain p-4 group-hover:scale-110 transition-transform duration-300" />
+        ) : (
+          <Shirt
+            size={72}
+            strokeWidth={0.8}
+            className="text-gray-300 group-hover:scale-110 transition-transform duration-300"
+          />
+        )}
       </div>
 
       <button
@@ -101,9 +74,9 @@ function ProductCard({
       <div className="bg-[#4361ee] h-[66px] flex items-center justify-between px-4">
         <div className="flex flex-col min-w-0">
           <span className="text-white text-[14px] font-semibold leading-tight truncate">
-            {item.name}
+            {item.name || "Unnamed Item"}
           </span>
-          <span className="text-white/70 text-[11px] font-medium">{item.brand}</span>
+          <span className="text-white/70 text-[11px] font-medium capitalize">{item.theme} • {item.type}</span>
         </div>
         <button
           onClick={(e) => e.stopPropagation()}
@@ -120,8 +93,34 @@ function ProductCard({
 
 export default function WardrobePage() {
   const [searchValue, setSearchValue]       = useState("");
-  const [activeCategory, setActiveCategory] = useState<Category>("Winter Clothes");
+  const [activeCategory, setActiveCategory] = useState("All");
   const [favorites, setFavorites]           = useState<Set<number>>(new Set());
+  const [items, setItems]                   = useState<WardrobeItem[]>([]);
+  const [isLoadingItems, setIsLoadingItems] = useState(true);
+  const [isUploadOpen, setIsUploadOpen]     = useState(false);
+  
+  const supabase = createClient();
+
+  const fetchItems = async () => {
+    setIsLoadingItems(true);
+    const { data: sessionData } = await supabase.auth.getSession();
+    if (!sessionData.session) return;
+    
+    const { data, error } = await supabase
+      .from('clothing_items')
+      .select('*')
+      .eq('user_id', sessionData.session.user.id)
+      .order('created_at', { ascending: false });
+      
+    if (!error && data) {
+      setItems(data);
+    }
+    setIsLoadingItems(false);
+  };
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
 
   function toggleFavorite(id: number) {
     setFavorites((prev) => {
@@ -133,15 +132,20 @@ export default function WardrobePage() {
   }
 
   const displayedItems = useMemo(() => {
-    const items = WARDROBE_ITEMS[activeCategory];
-    if (!searchValue.trim()) return items;
-    const q = searchValue.toLowerCase();
-    return items.filter(
-      (item) =>
-        item.name.toLowerCase().includes(q) ||
-        item.brand.toLowerCase().includes(q)
-    );
-  }, [activeCategory, searchValue]);
+    let filtered = items;
+    if (activeCategory !== "All") {
+      filtered = filtered.filter((i) => i.type.toLowerCase() === activeCategory.toLowerCase());
+    }
+    if (searchValue.trim()) {
+      const q = searchValue.toLowerCase();
+      filtered = filtered.filter(
+        (item) =>
+          item.name?.toLowerCase().includes(q) ||
+          item.theme?.toLowerCase().includes(q)
+      );
+    }
+    return filtered;
+  }, [items, activeCategory, searchValue]);
 
   return (
     <div className="flex h-screen bg-[#f4f5f8] overflow-hidden">
@@ -189,25 +193,39 @@ export default function WardrobePage() {
             </p>
           </div>
 
-          <div className="flex items-center gap-2 px-[57px] mt-5 shrink-0">
-            {CATEGORIES.map((cat) => (
-              <button
-                key={cat}
-                onClick={() => setActiveCategory(cat)}
-                className={[
-                  "px-5 py-2 rounded-xl text-[13px] font-medium transition-all duration-150 whitespace-nowrap",
-                  activeCategory === cat
-                    ? "bg-[#4361ee] text-white shadow-sm"
-                    : "bg-[#f4f5f8] text-gray-600 hover:bg-gray-200",
-                ].join(" ")}
-              >
-                {cat}
-              </button>
-            ))}
+          <div className="flex items-center gap-2 px-[57px] mt-5 shrink-0 justify-between">
+            <div className="flex items-center gap-2">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  onClick={() => setActiveCategory(cat)}
+                  className={[
+                    "px-5 py-2 rounded-xl text-[13px] font-medium transition-all duration-150 whitespace-nowrap",
+                    activeCategory === cat
+                      ? "bg-[#4361ee] text-white shadow-sm"
+                      : "bg-[#f4f5f8] text-gray-600 hover:bg-gray-200",
+                  ].join(" ")}
+                >
+                  {cat}
+                </button>
+              ))}
+            </div>
+            
+            <button
+              onClick={() => setIsUploadOpen(true)}
+              className="px-5 py-2 rounded-xl bg-[#4361ee] text-white text-[13px] font-medium shadow-sm hover:bg-[#3451d6] transition-colors flex items-center gap-2"
+            >
+              <Upload size={16} />
+              Want to upload your wardrobe
+            </button>
           </div>
 
           <div className="flex-1 overflow-y-auto px-[57px] pt-5 pb-6 min-h-0">
-            {displayedItems.length === 0 ? (
+            {isLoadingItems ? (
+              <div className="flex items-center justify-center h-full">
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-[#4361ee]" />
+              </div>
+            ) : displayedItems.length === 0 ? (
               <div className="flex flex-col items-center justify-center h-full gap-3 text-gray-400">
                 <Shirt size={56} strokeWidth={1} />
                 <span className="text-base font-medium">No items found</span>
@@ -227,6 +245,15 @@ export default function WardrobePage() {
           </div>
         </div>
       </main>
+
+      <UploadModal 
+        isOpen={isUploadOpen} 
+        onClose={() => setIsUploadOpen(false)} 
+        onSuccess={() => {
+          setIsUploadOpen(false);
+          fetchItems();
+        }} 
+      />
     </div>
   );
 }

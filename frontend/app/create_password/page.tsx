@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 export default function CreatePasswordPage() {
   const router = useRouter();
@@ -38,17 +39,12 @@ export default function CreatePasswordPage() {
     const email = localStorage.getItem("fashai_signup_email") || "";
 
     try {
-      const res = await fetch("/api/users", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const supabase = createClient();
+      const { error } = await supabase.auth.signUp({ email, password });
 
-      const data = await res.json();
-
-      if (!res.ok) {
+      if (error) {
         setLoading(false);
-        alert(data.error || "Registration failed");
+        alert(error.message || "Registration failed");
         return;
       }
 

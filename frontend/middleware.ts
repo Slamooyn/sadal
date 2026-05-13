@@ -2,7 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const AUTH_ONLY_PAGES = ["/login", "/register", "/add_your_email", "/verify_email", "/create_password", "/welcome_page", "/welcome_animation"]
-const ALWAYS_PUBLIC = ["/welcome_animation", "/auth_redirect", "/onboarding"]
+const ALWAYS_PUBLIC = ["/welcome_animation", "/auth_redirect", "/onboarding", "/auth/callback"]
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl

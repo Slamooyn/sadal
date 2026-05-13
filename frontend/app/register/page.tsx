@@ -2,7 +2,7 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useState } from "react";
 
 export default function RegisterPage() {
@@ -10,7 +10,11 @@ export default function RegisterPage() {
 
   const handleGoogleSignIn = async () => {
     setLoadingProvider("google");
-    await signIn("google", { callbackUrl: "/auth_redirect" });
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   };
   return (
     <div className="min-h-screen w-full overflow-hidden relative bg-black">

@@ -2,13 +2,14 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { signIn } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useState, useEffect } from "react";
 import { Eye, EyeOff } from "lucide-react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 
 export default function LoginPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -19,12 +20,21 @@ export default function LoginPage() {
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
+    // Show error from auth callback redirect
+    const urlError = searchParams.get("error");
+    if (urlError) {
+      setError(decodeURIComponent(urlError).replace(/_/g, " "));
+    }
     return () => clearTimeout(t);
-  }, []);
+  }, [searchParams]);
 
   const handleGoogleSignIn = async () => {
     setLoadingGoogle(true);
-    await signIn("google", { callbackUrl: "/auth_redirect" });
+    const supabase = createClient();
+    await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: { redirectTo: `${window.location.origin}/auth/callback` },
+    });
   };
 
   const handleLogin = async () => {
@@ -36,16 +46,11 @@ export default function LoginPage() {
     setLoadingLogin(true);
 
     try {
-      const res = await fetch("/api/users", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
-      });
+      const supabase = createClient();
+      const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Login failed");
+      if (signInError) {
+        setError(signInError.message || "Login failed");
         setLoadingLogin(false);
         return;
       }

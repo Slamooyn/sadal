@@ -13,7 +13,7 @@ import {
   LogOut,
 } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import SettingsPanel from "./SettingsPanel";
 
 const NAV_ITEMS = [
@@ -38,8 +38,8 @@ export default function Sidebar() {
 
   async function handleLogout() {
     try {
-      await fetch("/api/users", { method: "DELETE" });
-      await signOut({ redirect: false });
+      const supabase = createClient();
+      await supabase.auth.signOut();
       localStorage.removeItem("fashai_onboarding_completed");
       localStorage.removeItem("fashai_is_new_user");
       localStorage.removeItem("fashai_needs_onboarding");

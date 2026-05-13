@@ -1,31 +1,34 @@
 "use client";
 
-import { useSession } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 
 export default function Home() {
-  const { data: session, status } = useSession();
   const router = useRouter();
 
   useEffect(() => {
-    if (status === "loading") return;
+    const checkSession = async () => {
+      const supabase = createClient();
+      const { data: { session } } = await supabase.auth.getSession();
 
-    if (session) {
-      const hasCompletedOnboarding = localStorage.getItem("fashai_onboarding_completed");
-      if (hasCompletedOnboarding) {
-        router.replace("/dashboard");
+      if (session) {
+        const hasCompletedOnboarding = localStorage.getItem("fashai_onboarding_completed");
+        if (hasCompletedOnboarding) {
+          router.replace("/dashboard");
+        } else {
+          router.replace("/onboarding");
+        }
       } else {
-        router.replace("/onboarding");
+        localStorage.removeItem("fashai_onboarding_completed");
+        localStorage.removeItem("fashai_is_new_user");
+        localStorage.removeItem("fashai_needs_onboarding");
+        localStorage.removeItem("fashai_signup_email");
+        router.replace("/welcome_page");
       }
-    } else {
-      localStorage.removeItem("fashai_onboarding_completed");
-      localStorage.removeItem("fashai_is_new_user");
-      localStorage.removeItem("fashai_needs_onboarding");
-      localStorage.removeItem("fashai_signup_email");
-      router.replace("/welcome_page");
-    }
-  }, [session, status, router]);
+    };
+    checkSession();
+  }, [router]);
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#3D4FE0]">

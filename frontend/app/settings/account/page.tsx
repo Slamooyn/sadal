@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { useSession, signOut } from "next-auth/react";
+import { createClient } from "@/lib/supabase/client";
 import { LogOut, Eye, EyeOff, Check, AlertCircle, Loader2, Info } from "lucide-react";
 import Sidebar from "../../dashboard/components/Sidebar";
 
@@ -48,7 +48,16 @@ function Toast({
 /* ── Main Page ──────────────────────────────────────────────────────────────── */
 export default function AccountSettingPage() {
   const router = useRouter();
-  const { data: session, status: sessionStatus } = useSession();
+  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [sessionStatus, setSessionStatus] = useState("loading");
+
+  useEffect(() => {
+    const supabase = createClient();
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setSessionUser(user);
+      setSessionStatus(user ? "authenticated" : "unauthenticated");
+    });
+  }, []);
 
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -72,9 +81,9 @@ export default function AccountSettingPage() {
     []
   );
 
-  const userEmail = session?.user?.email || null;
+  const userEmail = sessionUser?.email || null;
   const isGoogleUser =
-    profile?.provider === "google" || !!session?.user?.image;
+    profile?.provider === "google" || sessionUser?.app_metadata?.provider === "google";
 
   // Fetch profile from Supabase via API
   useEffect(() => {
@@ -145,8 +154,8 @@ export default function AccountSettingPage() {
 
   async function handleLogout() {
     try {
-      await fetch("/api/users", { method: "DELETE" });
-      await signOut({ redirect: false });
+      const supabase = createClient();
+      await supabase.auth.signOut();
       localStorage.removeItem("fashai_onboarding_completed");
       localStorage.removeItem("fashai_is_new_user");
       localStorage.removeItem("fashai_needs_onboarding");
