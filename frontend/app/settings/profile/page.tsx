@@ -337,13 +337,6 @@ export default function ProfileSettingPage() {
       </main>
 
       {toast && <Toast message={toast.message} type={toast.type} onDone={() => setToast(null)} />}
-
-      <style jsx global>{`
-        @keyframes slideUp {
-          from { transform: translateY(20px); opacity: 0; }
-          to { transform: translateY(0); opacity: 1; }
-        }
-      `}</style>
     </div>
   );
 }

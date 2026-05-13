@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { supabase } from "../../../lib/supabase";
+import { supabase } from "../../../lib/supabase/supabase";
 
 // Helper: extract email from fashai_token (format: user_{timestamp}_{email})
 function getEmailFromToken(token: string): string | null {
