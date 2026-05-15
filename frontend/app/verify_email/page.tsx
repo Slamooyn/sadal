@@ -28,6 +28,10 @@ function VerifyEmailContent() {
   }, [searchParams]);
 
   useEffect(() => {
+    setResendTimer(60);
+  }, []);
+
+  useEffect(() => {
     if (resendTimer > 0) {
       const interval = setInterval(() => {
         setResendTimer((prev) => prev - 1);
@@ -36,9 +40,8 @@ function VerifyEmailContent() {
     }
   }, [resendTimer]);
 
-  useEffect(() => {
-    setResendTimer(60);
-  }, []);
+  // ✅ REMOVED: useEffect yang kirim OTP lagi saat email di-set
+  // OTP sudah dikirim dari halaman add_your_email, tidak perlu kirim ulang di sini
 
   const handleChange = (value: string, index: number) => {
     if (!/^\d?$/.test(value)) return;
@@ -89,8 +92,6 @@ function VerifyEmailContent() {
       }
     }
   };
-
-
 
   const handleVerify = async (fullCode?: string) => {
     const codeStr = fullCode || code.join("");
@@ -144,17 +145,6 @@ function VerifyEmailContent() {
       setError("Failed to resend code");
     }
   };
-
-  useEffect(() => {
-    // Trigger initial OTP send when page loads with email
-    if (email) {
-      fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
-      }).catch(() => {});
-    }
-  }, [email]);
 
   return (
     <div className="h-screen w-full overflow-hidden relative bg-black">
