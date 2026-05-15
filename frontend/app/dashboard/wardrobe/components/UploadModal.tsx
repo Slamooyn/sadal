@@ -94,8 +94,8 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
       }
 
       onSuccess();
-    } catch (err: any) {
-      setError(err.message || "Something went wrong during upload.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong during upload.");
     } finally {
       setIsLoading(false);
     }
