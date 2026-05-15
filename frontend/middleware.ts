@@ -5,55 +5,65 @@ const AUTH_ONLY_PAGES = ["/login", "/register", "/add_your_email", "/verify_emai
 const ALWAYS_PUBLIC = ["/welcome_animation", "/auth_redirect", "/onboarding", "/auth/callback"]
 
 export async function middleware(request: NextRequest) {
-  const { pathname } = request.nextUrl
+  try {
+    const { pathname } = request.nextUrl
 
-  // Guard: if Supabase env vars are missing, let the request through instead of crashing
-  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
-    return NextResponse.next()
-  }
-
-  if (pathname.startsWith("/api")) return NextResponse.next()
-
-  if (ALWAYS_PUBLIC.some((route) => pathname.startsWith(route))) {
-    return NextResponse.next()
-  }
-
-  let supabaseResponse = NextResponse.next({ request })
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll()
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
-          supabaseResponse = NextResponse.next({ request })
-          cookiesToSet.forEach(({ name, value, options }) =>
-            supabaseResponse.cookies.set(name, value, options)
-          )
-        },
-      },
+    // Guard: if Supabase env vars are missing, let the request through instead of crashing
+    if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+      console.error('[middleware] Missing env vars:', {
+        url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
+        key: !!process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+      })
+      return NextResponse.next()
     }
-  )
 
-  const { data: { user } } = await supabase.auth.getUser()
-  const isAuthenticated = !!user
-  const isAuthPage = AUTH_ONLY_PAGES.some((route) => pathname.startsWith(route))
+    if (pathname.startsWith("/api")) return NextResponse.next()
 
-  if (isAuthenticated && isAuthPage) {
-    return NextResponse.redirect(new URL("/auth_redirect", request.url))
+    if (ALWAYS_PUBLIC.some((route) => pathname.startsWith(route))) {
+      return NextResponse.next()
+    }
+
+    let supabaseResponse = NextResponse.next({ request })
+
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll()
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value }) => request.cookies.set(name, value))
+            supabaseResponse = NextResponse.next({ request })
+            cookiesToSet.forEach(({ name, value, options }) =>
+              supabaseResponse.cookies.set(name, value, options)
+            )
+          },
+        },
+      }
+    )
+
+    const { data: { user } } = await supabase.auth.getUser()
+    const isAuthenticated = !!user
+    const isAuthPage = AUTH_ONLY_PAGES.some((route) => pathname.startsWith(route))
+
+    if (isAuthenticated && isAuthPage) {
+      return NextResponse.redirect(new URL("/auth_redirect", request.url))
+    }
+
+    if (!isAuthenticated && !isAuthPage) {
+      const welcomeUrl = new URL("/welcome_page", request.url)
+      welcomeUrl.searchParams.set("from", pathname)
+      return NextResponse.redirect(welcomeUrl)
+    }
+
+    return supabaseResponse
+  } catch (error) {
+    // If middleware crashes for ANY reason, log and let the request through
+    console.error('[middleware] Unhandled error:', error)
+    return NextResponse.next()
   }
-
-  if (!isAuthenticated && !isAuthPage) {
-    const welcomeUrl = new URL("/welcome_page", request.url)
-    welcomeUrl.searchParams.set("from", pathname)
-    return NextResponse.redirect(welcomeUrl)
-  }
-
-  return supabaseResponse
 }
 
 export const config = {
