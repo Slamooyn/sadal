@@ -50,7 +50,12 @@ function LoginContent() {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (signInError) {
-        setError(signInError.message || "Login failed");
+        // Check if this user might be a Google OAuth user
+        if (signInError.message.toLowerCase().includes("invalid login credentials")) {
+          setError("Invalid credentials. If you signed up with Google, please use the Google button below.");
+        } else {
+          setError(signInError.message || "Login failed");
+        }
         setLoadingLogin(false);
         return;
       }

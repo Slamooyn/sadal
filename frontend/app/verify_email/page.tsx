@@ -10,7 +10,7 @@ function VerifyEmailContent() {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState<string[]>(["", "", "", "", ""]);
+  const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
@@ -48,13 +48,13 @@ function VerifyEmailContent() {
     setCode(newCode);
     if (error) setError("");
 
-    if (value && index < 4) {
+    if (value && index < 5) {
       inputs.current[index + 1]?.focus();
     }
 
-    if (value && index === 4) {
+    if (value && index === 5) {
       const fullCode = [...newCode].join("");
-      if (fullCode.length === 5) {
+      if (fullCode.length === 6) {
         handleVerify(fullCode);
       }
     }
@@ -74,28 +74,28 @@ function VerifyEmailContent() {
 
   const handlePaste = (e: React.ClipboardEvent) => {
     e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 5);
+    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
     if (pastedData.length > 0) {
       const newCode = [...code];
-      for (let i = 0; i < pastedData.length && i < 5; i++) {
+      for (let i = 0; i < pastedData.length && i < 6; i++) {
         newCode[i] = pastedData[i];
       }
       setCode(newCode);
       const nextEmpty = newCode.findIndex((d) => d === "");
-      inputs.current[nextEmpty === -1 ? 4 : nextEmpty]?.focus();
+      inputs.current[nextEmpty === -1 ? 5 : nextEmpty]?.focus();
 
-      if (pastedData.length === 5) {
+      if (pastedData.length === 6) {
         handleVerify(pastedData);
       }
     }
   };
 
-  const [devCode, setDevCode] = useState<string | null>(null);
+
 
   const handleVerify = async (fullCode?: string) => {
     const codeStr = fullCode || code.join("");
-    if (codeStr.length < 5) {
-      setError("Please enter the complete 5-digit code");
+    if (codeStr.length < 6) {
+      setError("Please enter the complete 6-digit code");
       return;
     }
 
@@ -126,7 +126,7 @@ function VerifyEmailContent() {
 
   const handleResend = async () => {
     if (resendTimer > 0) return;
-    setCode(["", "", "", "", ""]);
+    setCode(["", "", "", "", "", ""]);
     setError("");
 
     try {
@@ -136,11 +136,8 @@ function VerifyEmailContent() {
         body: JSON.stringify({ email }),
       });
 
-      const data = await res.json();
-
       if (res.ok) {
         setResendTimer(60);
-        if (data.devCode) setDevCode(data.devCode);
         inputs.current[0]?.focus();
       }
     } catch {
@@ -149,17 +146,13 @@ function VerifyEmailContent() {
   };
 
   useEffect(() => {
+    // Trigger initial OTP send when page loads with email
     if (email) {
       fetch("/api/verify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email }),
-      })
-        .then((res) => res.json())
-        .then((data) => {
-          if (data.devCode) setDevCode(data.devCode);
-        })
-        .catch(() => {});
+      }).catch(() => {});
     }
   }, [email]);
 
@@ -263,16 +256,10 @@ function VerifyEmailContent() {
             </div>
 
             <p className="text-black text-lg mb-2">
-              We just sent a 5-digit code to <br />
+              We just sent a 6-digit code to <br />
               <span className="font-semibold">{email || "your email"}</span>, enter it below:
             </p>
 
-            {devCode && (
-              <div className="bg-yellow-400/90 text-black text-sm px-4 py-2 rounded-xl mb-2 flex items-center gap-2">
-                <span>🧪</span>
-                <span>Dev mode — Your code: <strong className="font-mono text-base tracking-widest">{devCode}</strong></span>
-              </div>
-            )}
             <div className="w-full">
               <p className="text-black mb-2">Code</p>
 
@@ -306,7 +293,7 @@ function VerifyEmailContent() {
 
               <button
                 onClick={() => handleVerify()}
-                disabled={loading || code.join("").length < 5}
+                disabled={loading || code.join("").length < 6}
                 className="w-full bg-[#CFB0F0] hover:bg-[#2B0058] text-white font-semibold py-4 rounded-2xl transition
                   disabled:opacity-60 disabled:cursor-not-allowed"
               >
