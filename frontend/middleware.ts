@@ -7,7 +7,7 @@ export async function middleware(request: NextRequest) {
   try {
     const { pathname } = request.nextUrl
 
-    // Guard: if Supabase env vars are missing, let the request through instead of crashing
+
     if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
       console.error('[middleware] Missing env vars:', {
         url: !!process.env.NEXT_PUBLIC_SUPABASE_URL,
@@ -22,7 +22,7 @@ export async function middleware(request: NextRequest) {
       return NextResponse.next()
     }
 
-    // Dynamic import to avoid __dirname issues at module load time in Edge Runtime
+
     const { createServerClient } = await import('@supabase/ssr')
 
     let supabaseResponse = NextResponse.next({ request })
@@ -62,7 +62,7 @@ export async function middleware(request: NextRequest) {
 
     return supabaseResponse
   } catch (error) {
-    // If middleware crashes for ANY reason, log and let the request through
+
     console.error('[middleware] Unhandled error:', error)
     return NextResponse.next()
   }

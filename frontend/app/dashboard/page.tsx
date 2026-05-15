@@ -28,7 +28,7 @@ const ANALYTICS_CARDS = [
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 
-// Full-card shimmer shown while Gemini is loading
+
 function CardShimmer() {
   return (
     <div className="w-full h-full flex flex-col animate-pulse">
@@ -40,7 +40,7 @@ function CardShimmer() {
   );
 }
 
-// Photo + title card (used for all 3 positions)
+
 function OutfitCardView({
   outfit,
   cardHeight,
@@ -133,7 +133,7 @@ export default function DashboardPage() {
         }
       }
 
-      // Fix 2: check sessionStorage before calling Gemini
+
       const cached = sessionStorage.getItem("fashai_outfits");
       if (cached) {
         try {
@@ -147,7 +147,7 @@ export default function DashboardPage() {
         } catch { /* corrupt cache — fall through to fresh fetch */ }
       }
 
-      // Fix 3: query user's wardrobe from Supabase
+
       const supabase = createClient();
       type WardrobeDetail = { name: string; type: string; theme: string; color: string };
       let wardrobeItems: WardrobeDetail[] = [];
@@ -184,7 +184,7 @@ export default function DashboardPage() {
         }
       } catch { /* wardrobe query failed — proceed without it */ }
 
-      // Fetch from Gemini
+
       try {
         const res = await fetch("/api/recommendation", {
           method: "POST",
@@ -199,7 +199,7 @@ export default function DashboardPage() {
           throw new Error("Empty outfits");
         }
 
-        // Fix 2: cache result so re-visiting the page skips Gemini
+
         sessionStorage.setItem("fashai_outfits", JSON.stringify(data.outfits));
 
         const base: OutfitCard[] = data.outfits.map(

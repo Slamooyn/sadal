@@ -3,13 +3,13 @@ import { cookies } from "next/headers";
 import { supabase } from "../../../lib/supabase/supabase";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
 
-// Helper: get current user's email from cookies or query params
+
 async function getCurrentUserEmail(): Promise<{
   email: string | null;
   provider: string;
 }> {
   const cookieStore = await cookies();
-  // Legacy token support (can be removed once fully migrated)
+
   const token = cookieStore.get("fashai_token")?.value;
 
   if (token) {
@@ -25,7 +25,7 @@ export async function GET(request: Request) {
   try {
     const { email: tokenEmail, provider } = await getCurrentUserEmail();
 
-    // Check if client passed email via query param (for Google users)
+
     const url = new URL(request.url);
     const clientEmail = url.searchParams.get("email");
     const email = tokenEmail || clientEmail;
@@ -37,7 +37,7 @@ export async function GET(request: Request) {
       );
     }
 
-    // Fetch from Supabase
+
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
@@ -45,7 +45,6 @@ export async function GET(request: Request) {
       .single();
 
     if (error || !data) {
-      // Return default profile if not found
       return NextResponse.json({
         id: email,
         username: email.split("@")[0],
@@ -84,7 +83,7 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Invalid field" }, { status: 400 });
     }
 
-    // Google users cannot change email (managed by Google), but CAN set a password
+
     if (provider === "google" && field === "email") {
       return NextResponse.json(
         { error: "Google accounts cannot change email here" },
@@ -93,9 +92,9 @@ export async function PUT(request: Request) {
     }
 
     if (field === "password") {
-      // Update password in Supabase Auth using admin client
+
       try {
-        // Find user by email in auth.users
+
         const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
         
         if (listError) {
@@ -138,10 +137,10 @@ export async function PUT(request: Request) {
       }
     }
 
-    // Update profile in Supabase
+
     const updateData: Record<string, string> = { [field]: value };
 
-    // First try update
+
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
@@ -162,7 +161,6 @@ export async function PUT(request: Request) {
         );
       }
     } else {
-      // Create profile if it doesn't exist
       const { error } = await supabase.from("profiles").insert({
         id: email,
         email,
@@ -181,7 +179,7 @@ export async function PUT(request: Request) {
       }
     }
 
-    // Fetch updated profile
+
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")

@@ -24,7 +24,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    // 1. Send image to remove.bg API
+
     const arrayBuffer = await file.arrayBuffer();
     const buffer = Buffer.from(arrayBuffer);
 
@@ -63,7 +63,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Failed to process image background' }, { status: 500 });
     }
 
-    // 2. Upload to Supabase Storage
+
     const timestamp = Date.now();
     const ext = file.name.split('.').pop() || 'png';
     const originalPath = `${userId}/${timestamp}_original.${ext}`;
@@ -99,7 +99,7 @@ export async function POST(request: Request) {
       .from('clothing-processed')
       .getPublicUrl(processedPath);
 
-    // 3. Save to database
+
     const { data: dbData, error: dbError } = await supabase
       .from('clothing_items')
       .insert({

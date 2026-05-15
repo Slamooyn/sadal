@@ -249,12 +249,12 @@ export default function ExplorePage() {
   const loadPosts = useCallback(async () => {
     setLoading(true);
 
-    // Resolve current user
+
     const { data: sessionData } = await supabase.auth.getSession();
     const userId = sessionData.session?.user.id ?? null;
     setCurrentUserId(userId);
 
-    // 1. Public wardrobes
+
     const { data: wardrobesData } = await supabase
       .from("wardrobes")
       .select("id")
@@ -268,7 +268,7 @@ export default function ExplorePage() {
       return;
     }
 
-    // 2. Posts from those wardrobes
+
     const { data: postsData } = await supabase
       .from("wardrobe_posts")
       .select("id, user_id, caption, theme, saves_count, posted_at")
@@ -283,7 +283,7 @@ export default function ExplorePage() {
 
     const userIds = [...new Set(postsData.map((p) => p.user_id))];
 
-    // 3. Parallel: profiles + outfit_sets (with created_at) + saved_posts
+
     const [profilesRes, outfitSetsRes, savedRes] = await Promise.all([
       supabase.from("profiles").select("id, username").in("id", userIds),
       supabase
@@ -299,7 +299,7 @@ export default function ExplorePage() {
     const outfitSets = outfitSetsRes.data ?? [];
     const savedPostIds = new Set((savedRes.data ?? []).map((s) => s.post_id));
 
-    // 4. Group all outfit_sets by (user_id, theme), already sorted desc by created_at
+
     const setsByKey: Record<string, typeof outfitSets> = {};
     for (const os of outfitSets) {
       const key = `${os.user_id}__${os.theme}`;
@@ -307,20 +307,20 @@ export default function ExplorePage() {
       setsByKey[key].push(os);
     }
 
-    // 4b. Per post → find the most recent outfit_set created at or before posted_at
+
     const postToSetId: Record<string, string> = {};
     for (const p of postsData) {
       const key = `${p.user_id}__${p.theme}`;
       const candidates = setsByKey[key] ?? [];
       if (candidates.length === 0) continue;
       const postedAt = new Date(p.posted_at).getTime();
-      // candidates sorted desc — first one at or before posted_at is the right match
+
       const match = candidates.find((os) => new Date(os.created_at).getTime() <= postedAt);
-      // fallback: use earliest available (last in desc list) if all were created after posted_at
+
       postToSetId[p.id] = (match ?? candidates[candidates.length - 1]).id;
     }
 
-    // 5. Outfit images via outfit_set_items → clothing_items
+
     const outfitSetIds = [...new Set(Object.values(postToSetId))];
     const itemsBySetId: Record<string, OutfitImage[]> = {};
 
@@ -350,11 +350,11 @@ export default function ExplorePage() {
       }
     }
 
-    // 6. Profile map
+
     const profileMap: Record<string, string> = {};
     for (const p of profilesRes.data ?? []) profileMap[p.id] = p.username ?? "Unknown";
 
-    // 7. Assemble
+
     const assembled: ExplorePost[] = postsData.map((p) => {
       const setId = postToSetId[p.id];
       return {
@@ -388,7 +388,7 @@ export default function ExplorePage() {
 
     const wasSaved = post.is_saved;
 
-    // Optimistic update — also updates the modal since it derives from posts state
+
     setPosts((prev) =>
       prev.map((p) =>
         p.id === postId
@@ -432,7 +432,7 @@ export default function ExplorePage() {
       )
     : posts;
 
-  // Derive modal post from posts state so toggling save updates the modal too
+
   const selectedPost = posts.find((p) => p.id === selectedPostId) ?? null;
 
   // ── Render ────────────────────────────────────────────────────────────────────

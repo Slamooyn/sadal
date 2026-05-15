@@ -39,7 +39,6 @@ function VerifyEmailContent() {
     }
   }, [resendTimer]);
 
-  // Listen for auth state changes — if user confirms email in same browser, auto-redirect
   useEffect(() => {
     const supabase = createClient();
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {

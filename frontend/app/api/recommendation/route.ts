@@ -3,7 +3,7 @@ import { GoogleGenerativeAI } from "@google/generative-ai";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
 
-// Fallback if Gemini is unavailable
+
 const FALLBACK_OUTFITS = [
   { name: "Casual Classic",  description: "Effortless everyday comfort",       items: ["White t-shirt", "Blue jeans", "White sneakers"],          imageQuery: "casual everyday fashion outfit clothing" },
   { name: "Street Chic",     description: "Bold and urban street style",       items: ["Graphic hoodie", "Cargo pants", "Chunky sneakers"],        imageQuery: "urban streetwear fashion outfit clothing" },
@@ -12,7 +12,7 @@ const FALLBACK_OUTFITS = [
   { name: "Minimal Vibes",   description: "Clean lines, calm aesthetic",       items: ["Plain crewneck", "Straight-leg trousers", "Sneakers"],     imageQuery: "minimalist fashion outfit clothing style" },
 ];
 
-// Try generating with retries on 429 (rate limit)
+
 async function generateWithRetry(
   prompt: string,
   models: string[],
@@ -69,7 +69,7 @@ function parseOutfits(text: string): OutfitItem[] {
     throw new Error("Parsed JSON has no outfits array");
   }
 
-  // Ensure imageQuery always contains fashion/clothing keywords
+
   return (data.outfits as OutfitItem[]).map((o) => {
     const base = o.imageQuery?.trim() || `${o.name} fashion outfit`;
     const lower = base.toLowerCase();

@@ -13,7 +13,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   const router = useRouter();
   const panelRef = useRef<HTMLDivElement>(null);
 
-  // Close on click outside
+
   useEffect(() => {
     if (!open) return;
     function handleClick(e: MouseEvent) {
@@ -21,7 +21,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
         onClose();
       }
     }
-    // Delay to avoid immediate close from the same click that opened it
+
     const timer = setTimeout(() => {
       document.addEventListener("mousedown", handleClick);
     }, 50);
@@ -31,7 +31,7 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
     };
   }, [open, onClose]);
 
-  // Close on Escape
+
   useEffect(() => {
     if (!open) return;
     function handleKey(e: KeyboardEvent) {

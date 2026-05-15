@@ -8,7 +8,6 @@ export async function POST(request: Request) {
       return NextResponse.json({ url: null });
     }
 
-    // Ensure Pexels always returns fashion-relevant photos
     const raw = query.trim();
     const lower = raw.toLowerCase();
     const fashionQuery =

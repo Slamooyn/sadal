@@ -20,7 +20,7 @@ function LoginContent() {
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
-    // Show error from auth callback redirect
+
     const urlError = searchParams.get("error");
     if (urlError) {
       setError(decodeURIComponent(urlError).replace(/_/g, " "));
@@ -50,7 +50,7 @@ function LoginContent() {
       const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
 
       if (signInError) {
-        // Check if this user might be a Google OAuth user
+
         if (signInError.message.toLowerCase().includes("invalid login credentials")) {
           setError("Invalid credentials. If you signed up with Google, please use the Google button below.");
         } else {

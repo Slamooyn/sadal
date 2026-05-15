@@ -6,7 +6,7 @@ function hashPassword(password: string, salt: string): string {
   return crypto.pbkdf2Sync(password, salt, 1000, 64, "sha512").toString("hex");
 }
 
-// POST = Register new user
+
 export async function POST(request: Request) {
   try {
     const { email, password } = await request.json();
@@ -18,7 +18,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user already exists in Supabase
+
     const { data: existing } = await supabase
       .from("users")
       .select("email")
@@ -32,7 +32,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Hash password and store in Supabase
+
     const salt = crypto.randomBytes(16).toString("hex");
     const passwordHash = hashPassword(password, salt);
 
@@ -50,7 +50,7 @@ export async function POST(request: Request) {
       );
     }
 
-    // Also create profile entry
+
     await supabase.from("profiles").upsert(
       {
         id: email,
@@ -83,7 +83,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT = Login existing user
+
 export async function PUT(request: Request) {
   try {
     const { email, password } = await request.json();
@@ -95,7 +95,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Fetch user from Supabase
+
     const { data: user, error } = await supabase
       .from("users")
       .select("*")
@@ -109,7 +109,7 @@ export async function PUT(request: Request) {
       );
     }
 
-    // Verify password
+
     const passwordHash = hashPassword(password, user.salt);
     if (passwordHash !== user.password_hash) {
       return NextResponse.json(
@@ -135,7 +135,7 @@ export async function PUT(request: Request) {
   }
 }
 
-// DELETE = Logout (clear cookie)
+
 export async function DELETE() {
   const response = NextResponse.json({ success: true });
   response.cookies.delete("fashai_token");
