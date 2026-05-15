@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "@/lib/supabase/client";
 import { LogOut, Camera, Check, AlertCircle, Loader2 } from "lucide-react";
+import type { User } from "@supabase/supabase-js";
 import Sidebar from "../../dashboard/components/Sidebar";
 
 interface ProfileData {
@@ -48,7 +49,7 @@ function Toast({
 /* ── Main Page ──────────────────────────────────────────────────────────────── */
 export default function ProfileSettingPage() {
   const router = useRouter();
-  const [sessionUser, setSessionUser] = useState<any>(null);
+  const [sessionUser, setSessionUser] = useState<User | null>(null);
   const [sessionStatus, setSessionStatus] = useState("loading");
 
   useEffect(() => {
