@@ -243,26 +243,13 @@ export default function MixMatchPage() {
       if (!sessionData.session) throw new Error("Not logged in");
       const userId = sessionData.session.user.id;
 
-      let wardrobeId: number;
-      const { data: existingWard } = await supabase
+      const { data: newWard, error: eW } = await supabase
         .from("wardrobes")
+        .insert({ user_id: userId, name: outfitName.trim() || `${activeLabel} Outfit`, theme: activeTheme, is_public: true })
         .select("id")
-        .eq("user_id", userId)
-        .limit(1)
-        .maybeSingle();
-
-      if (existingWard) {
-        wardrobeId = existingWard.id;
-        await supabase.from("wardrobes").update({ is_public: true }).eq("id", wardrobeId);
-      } else {
-        const { data: newWard, error: eW } = await supabase
-          .from("wardrobes")
-          .insert({ user_id: userId, name: "My Wardrobe", theme: activeTheme, is_public: true })
-          .select("id")
-          .single();
-        if (eW) throw eW;
-        wardrobeId = newWard.id;
-      }
+        .single();
+      if (eW) throw eW;
+      const wardrobeId = newWard.id;
 
       const { error: eP } = await supabase.from("wardrobe_posts").insert({
         user_id:     userId,
