@@ -1,13 +1,15 @@
 import { NextResponse } from "next/server";
+import { Resend } from "resend";
 import { createClient } from "@supabase/supabase-js";
 
-// Use Supabase Admin client to check if email already exists
+const resend = new Resend(process.env.RESEND_API_KEY);
+
 const supabaseAdmin = createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
 
-// POST /api/verify — Send OTP to email via Supabase
+// POST /api/verify — Generate OTP, store in DB, send via email
 export async function POST(request: Request) {
   try {
     const { email } = await request.json();
@@ -16,50 +18,61 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Invalid email" }, { status: 400 });
     }
 
-    // Check if user already exists with this email
-    const { data: existingUsers } = await supabaseAdmin.auth.admin.listUsers();
-    const userExists = existingUsers?.users?.some(
-      (u) => u.email === email
-    );
+    // Generate 6-digit code
+    const code = Math.floor(100000 + Math.random() * 900000).toString();
+    const expiresAt = new Date(Date.now() + 10 * 60 * 1000).toISOString(); // 10 min
 
-    if (userExists) {
+    // Delete any existing codes for this email, then insert new one
+    await supabaseAdmin
+      .from("verification_codes")
+      .delete()
+      .eq("email", email);
+
+    const { error: insertError } = await supabaseAdmin
+      .from("verification_codes")
+      .insert({ email, code, expires_at: expiresAt });
+
+    if (insertError) {
+      console.error("[verify] DB insert error:", insertError);
       return NextResponse.json(
-        { error: "An account with this email already exists. Please log in." },
-        { status: 409 }
+        { error: "Failed to generate code. Please try again." },
+        { status: 500 }
       );
     }
 
-    // Send OTP email via Supabase Auth
-    const { createClient: createBrowserClient } = await import("@supabase/supabase-js");
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
-
-    const { error } = await supabase.auth.signInWithOtp({
-      email,
-      options: {
-        shouldCreateUser: false, // Don't create user yet, just send OTP
-      },
+    // Send email via Resend
+    const { error: emailError } = await resend.emails.send({
+      from: "Fashai <onboarding@resend.dev>",
+      to: email,
+      subject: "Your Fashai verification code",
+      html: `
+        <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 480px; margin: 0 auto; padding: 40px 24px;">
+          <div style="text-align: center; margin-bottom: 32px;">
+            <h1 style="color: #3D4FE0; font-size: 28px; margin: 0;">Fashai</h1>
+            <p style="color: #666; font-size: 14px; margin-top: 4px;">Your AI Fashion Assistant</p>
+          </div>
+          <div style="background: #f8f9fa; border-radius: 16px; padding: 32px; text-align: center;">
+            <p style="color: #333; font-size: 16px; margin: 0 0 8px;">Your verification code is:</p>
+            <div style="font-size: 36px; font-weight: 700; letter-spacing: 8px; color: #3D4FE0; padding: 16px 0; font-family: monospace;">
+              ${code}
+            </div>
+            <p style="color: #999; font-size: 13px; margin: 16px 0 0;">
+              This code expires in 10 minutes.<br/>
+              If you didn't request this, you can safely ignore this email.
+            </p>
+          </div>
+        </div>
+      `,
     });
 
-    // Supabase returns "Signups not allowed for otp" when shouldCreateUser is false
-    // and the user doesn't exist. That's expected — we just want to send a code.
-    // Use admin API to send a custom OTP instead.
-    if (error) {
-      // Fallback: use admin to generate an OTP invite
-      const { error: otpError } = await supabaseAdmin.auth.admin.generateLink({
-        type: "magiclink",
-        email,
-      });
-
-      if (otpError) {
-        console.error("[verify] OTP error:", otpError);
-        return NextResponse.json(
-          { error: "Failed to send verification code. Please try again." },
-          { status: 500 }
-        );
-      }
+    if (emailError) {
+      console.error("[verify] Resend error:", emailError);
+      // Clean up the code since email failed
+      await supabaseAdmin.from("verification_codes").delete().eq("email", email);
+      return NextResponse.json(
+        { error: "Failed to send verification email. Please try again." },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({
@@ -72,7 +85,7 @@ export async function POST(request: Request) {
   }
 }
 
-// PUT /api/verify — Verify OTP code
+// PUT /api/verify — Verify OTP code from DB
 export async function PUT(request: Request) {
   try {
     const { email, code } = await request.json();
@@ -84,25 +97,39 @@ export async function PUT(request: Request) {
       );
     }
 
-    const { createClient: createBrowserClient } = await import("@supabase/supabase-js");
-    const supabase = createBrowserClient(
-      process.env.NEXT_PUBLIC_SUPABASE_URL!,
-      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!
-    );
+    // Look up code in DB
+    const { data, error: fetchError } = await supabaseAdmin
+      .from("verification_codes")
+      .select("code, expires_at")
+      .eq("email", email)
+      .single();
 
-    const { error } = await supabase.auth.verifyOtp({
-      email,
-      token: code,
-      type: "email",
-    });
-
-    if (error) {
-      console.error("[verify] Verify error:", error.message);
+    if (fetchError || !data) {
       return NextResponse.json(
-        { error: "Invalid or expired code. Please try again." },
+        { error: "No verification code found. Please request a new one." },
         { status: 400 }
       );
     }
+
+    // Check expiry
+    if (new Date() > new Date(data.expires_at)) {
+      await supabaseAdmin.from("verification_codes").delete().eq("email", email);
+      return NextResponse.json(
+        { error: "Code has expired. Please request a new one." },
+        { status: 400 }
+      );
+    }
+
+    // Check code match
+    if (data.code !== code) {
+      return NextResponse.json(
+        { error: "Invalid code. Please try again." },
+        { status: 400 }
+      );
+    }
+
+    // Success — clean up
+    await supabaseAdmin.from("verification_codes").delete().eq("email", email);
 
     return NextResponse.json({ success: true, verified: true });
   } catch {
