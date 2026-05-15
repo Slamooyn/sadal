@@ -366,8 +366,8 @@ export default function SavedOutfitsPage() {
     ]);
 
     // ── Phase 3: for saved posts, resolve outfit images ─────────────────────────
-    let imagesByPostId: Record<string, OutfitImage[]> = {};
-    let savedProfileMap: Record<string, string> = {};
+    const imagesByPostId: Record<string, OutfitImage[]> = {};
+    const savedProfileMap: Record<string, string> = {};
 
     if (savedPostsData.length > 0) {
       const postUserIds = [...new Set(savedPostsData.map((p) => p.user_id))];
