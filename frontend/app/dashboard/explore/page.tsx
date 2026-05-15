@@ -308,7 +308,7 @@ export default function ExplorePage() {
     }
 
     // 4b. Per post → find the most recent outfit_set created at or before posted_at
-    const postToSetId: Record<number, number> = {};
+    const postToSetId: Record<string, string> = {};
     for (const p of postsData) {
       const key = `${p.user_id}__${p.theme}`;
       const candidates = setsByKey[key] ?? [];
@@ -322,7 +322,7 @@ export default function ExplorePage() {
 
     // 5. Outfit images via outfit_set_items → clothing_items
     const outfitSetIds = [...new Set(Object.values(postToSetId))];
-    const itemsBySetId: Record<number, OutfitImage[]> = {};
+    const itemsBySetId: Record<string, OutfitImage[]> = {};
 
     if (outfitSetIds.length > 0) {
       const { data: osItems } = await supabase
