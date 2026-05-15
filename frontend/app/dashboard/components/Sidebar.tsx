@@ -5,9 +5,10 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import {
   Home,
-  Package,
+  TrendingUp,
   BarChart,
   LayoutGrid,
+  Compass,
   Bell,
   Settings,
   LogOut,
@@ -18,9 +19,10 @@ import SettingsPanel from "./SettingsPanel";
 
 const NAV_ITEMS = [
   { href: "/dashboard",               icon: Home,       label: "Home" },
-  { href: "/dashboard/orders",        icon: Package,    label: "Orders" },
+  { href: "/dashboard/stats",          icon: TrendingUp, label: "Stats" },
   { href: "/dashboard/wardrobe",      icon: BarChart,   label: "Wardrobe" },
-  { href: "/dashboard/products",      icon: LayoutGrid, label: "Products" },
+  { href: "/dashboard/mix-match",      icon: LayoutGrid, label: "Mix & Match" },
+  { href: "/dashboard/explore",        icon: Compass,    label: "Explore" },
   { href: "/dashboard/notifications", icon: Bell,       label: "Notifications" },
 ];
 
