@@ -138,15 +138,97 @@ export default function MixMatchPage() {
       const { data: sessionData } = await supabase.auth.getSession();
       if (!sessionData.session || cancelled) { setLoading(false); return; }
 
-      const { data, error: err } = await supabase
-        .from("clothing_items")
-        .select("id, name, type, theme, color, processed_image_url")
-        .eq("user_id", sessionData.session.user.id)
-        .eq("theme", activeTheme)
-        .order("created_at", { ascending: false });
+      const userId = sessionData.session.user.id;
+
+      // Fetch own items and saved post ids in parallel
+      const [ownRes, savedPostsRes] = await Promise.all([
+        supabase
+          .from("clothing_items")
+          .select("id, name, type, theme, color, processed_image_url")
+          .eq("user_id", userId)
+          .eq("theme", activeTheme)
+          .order("created_at", { ascending: false }),
+        supabase
+          .from("saved_posts")
+          .select("post_id")
+          .eq("user_id", userId),
+      ]);
+
+      const ownItems: ClothingItem[] = (!ownRes.error && ownRes.data)
+        ? ownRes.data as ClothingItem[]
+        : [];
+
+      // Fetch clothing items from saved outfits
+      const savedItems: ClothingItem[] = [];
+      const postIds = (savedPostsRes.data ?? []).map((s) => s.post_id);
+
+      if (postIds.length > 0) {
+        const { data: postsData } = await supabase
+          .from("wardrobe_posts")
+          .select("id, user_id, theme, posted_at")
+          .in("id", postIds)
+          .eq("theme", activeTheme);
+
+        if (postsData && postsData.length > 0) {
+          const postUserIds = [...new Set(postsData.map((p) => p.user_id))];
+
+          const { data: outfitSetsData } = await supabase
+            .from("outfit_sets")
+            .select("id, user_id, theme, created_at")
+            .in("user_id", postUserIds)
+            .eq("theme", activeTheme)
+            .order("created_at", { ascending: false });
+
+          const outfitSets = outfitSetsData ?? [];
+          const setsByKey: Record<string, typeof outfitSets> = {};
+          for (const os of outfitSets) {
+            const key = `${os.user_id}__${os.theme}`;
+            if (!setsByKey[key]) setsByKey[key] = [];
+            setsByKey[key].push(os);
+          }
+
+          const outfitSetIds: string[] = [];
+          for (const p of postsData) {
+            const key = `${p.user_id}__${p.theme}`;
+            const candidates = setsByKey[key] ?? [];
+            if (candidates.length === 0) continue;
+            const postedAt = new Date(p.posted_at).getTime();
+            const match = candidates.find((os) => new Date(os.created_at).getTime() <= postedAt);
+            const setId = (match ?? candidates[candidates.length - 1]).id;
+            if (!outfitSetIds.includes(setId)) outfitSetIds.push(setId);
+          }
+
+          if (outfitSetIds.length > 0) {
+            const { data: osItems } = await supabase
+              .from("outfit_set_items")
+              .select("clothing_item_id")
+              .in("outfit_set_id", outfitSetIds);
+
+            if (osItems && osItems.length > 0) {
+              const ciIds = [...new Set(osItems.map((i) => i.clothing_item_id))];
+              const { data: ciData } = await supabase
+                .from("clothing_items")
+                .select("id, name, type, theme, color, processed_image_url")
+                .in("id", ciIds)
+                .eq("theme", activeTheme);
+
+              savedItems.push(...((ciData ?? []) as ClothingItem[]));
+            }
+          }
+        }
+      }
 
       if (!cancelled) {
-        if (!err && data) setItems(data as ClothingItem[]);
+        // Merge own + saved, deduplicate by id
+        const seenIds = new Set<number>();
+        const merged: ClothingItem[] = [];
+        for (const item of [...ownItems, ...savedItems]) {
+          if (!seenIds.has(item.id)) {
+            seenIds.add(item.id);
+            merged.push(item);
+          }
+        }
+        setItems(merged);
         setLoading(false);
       }
     }

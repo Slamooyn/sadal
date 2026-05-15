@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { UserCircle2, UserCog } from "lucide-react";
+import { UserCircle2, UserCog, Bookmark } from "lucide-react";
 
 interface SettingsPanelProps {
   open: boolean;
@@ -86,12 +86,27 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
           onClose();
           router.push("/settings/account");
         }}
-        className="flex items-center gap-4 text-white hover:bg-white/10 active:scale-[0.97] transition-all duration-200 text-left rounded-xl px-3 py-3"
+        className="flex items-center gap-4 text-white hover:bg-white/10 active:scale-[0.97] transition-all duration-200 text-left rounded-xl px-3 py-3 mb-3"
       >
         <UserCog size={32} strokeWidth={1.5} className="shrink-0" />
         <span style={{ fontSize: 22 }}>
           <span className="font-bold">Account</span>
           <span className="font-light"> Setting</span>
+        </span>
+      </button>
+
+      {/* Saved Outfits */}
+      <button
+        onClick={() => {
+          onClose();
+          router.push("/settings/saved");
+        }}
+        className="flex items-center gap-4 text-white hover:bg-white/10 active:scale-[0.97] transition-all duration-200 text-left rounded-xl px-3 py-3"
+      >
+        <Bookmark size={32} strokeWidth={1.5} className="shrink-0" />
+        <span style={{ fontSize: 22 }}>
+          <span className="font-bold">Saved</span>
+          <span className="font-light"> Outfits</span>
         </span>
       </button>
     </div>
