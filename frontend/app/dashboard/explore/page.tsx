@@ -14,7 +14,7 @@ interface OutfitImage {
 }
 
 interface ExplorePost {
-  id: number;
+  id: string;
   user_id: string;
   caption: string;
   theme: string;
@@ -48,7 +48,7 @@ function OutfitDetailModal({
 }: {
   post: ExplorePost | null;
   onClose: () => void;
-  onToggleSave: (postId: number) => void;
+  onToggleSave: (postId: string) => void;
 }) {
   useEffect(() => {
     if (!post) return;
@@ -171,7 +171,7 @@ function PostCard({
   onClick,
 }: {
   post: ExplorePost;
-  onToggleSave: (postId: number) => void;
+  onToggleSave: (postId: string) => void;
   onClick: () => void;
 }) {
   const coverImage =
@@ -242,7 +242,7 @@ export default function ExplorePage() {
   const [posts, setPosts]                 = useState<ExplorePost[]>([]);
   const [loading, setLoading]             = useState(true);
   const [currentUserId, setCurrentUserId] = useState<string | null>(null);
-  const [selectedPostId, setSelectedPostId] = useState<number | null>(null);
+  const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   const supabase = createClient();
 
@@ -293,14 +293,14 @@ export default function ExplorePage() {
         .order("id", { ascending: false }),
       userId
         ? supabase.from("saved_posts").select("post_id").eq("user_id", userId)
-        : Promise.resolve({ data: [] as { post_id: number }[], error: null }),
+        : Promise.resolve({ data: [] as { post_id: string }[], error: null }),
     ]);
 
     const outfitSets = outfitSetsRes.data ?? [];
     const savedPostIds = new Set((savedRes.data ?? []).map((s) => s.post_id));
 
     // 4. Per (user_id, theme) → latest outfit_set id (already desc ordered)
-    const latestSetByKey: Record<string, number> = {};
+    const latestSetByKey: Record<string, string> = {};
     for (const os of outfitSets) {
       const key = `${os.user_id}__${os.theme}`;
       if (!(key in latestSetByKey)) latestSetByKey[key] = os.id;
@@ -308,7 +308,7 @@ export default function ExplorePage() {
 
     // 5. Outfit images via outfit_set_items → clothing_items
     const outfitSetIds = Object.values(latestSetByKey);
-    const itemsBySetId: Record<number, OutfitImage[]> = {};
+    const itemsBySetId: Record<string, OutfitImage[]> = {};
 
     if (outfitSetIds.length > 0) {
       const { data: osItems } = await supabase
@@ -323,7 +323,7 @@ export default function ExplorePage() {
           .select("id, processed_image_url")
           .in("id", ciIds);
 
-        const ciMap: Record<number, string | null> = {};
+        const ciMap: Record<string, string | null> = {};
         for (const ci of ciData ?? []) ciMap[ci.id] = ci.processed_image_url;
 
         for (const item of osItems) {
@@ -367,7 +367,7 @@ export default function ExplorePage() {
 
   // ── Save / unsave ─────────────────────────────────────────────────────────────
 
-  async function handleToggleSave(postId: number) {
+  async function handleToggleSave(postId: string) {
     if (!currentUserId) return;
 
     const post = posts.find((p) => p.id === postId);

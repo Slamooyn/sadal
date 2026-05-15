@@ -7,7 +7,7 @@ import TopBar from "../components/TopBar";
 import { createClient } from "@/lib/supabase/client";
 
 interface Notification {
-  id: number;
+  id: string;
   user_id: string;
   title: string;
   message: string;
