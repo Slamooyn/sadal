@@ -75,7 +75,7 @@ export default function NotificationsPage() {
                 </div>
                 <p className="text-[15px] font-semibold text-gray-500">No notifications yet</p>
                 <p className="text-sm text-gray-400 text-center max-w-[280px]">
-                  You'll see notifications here when something happens
+                  You&apos;ll see notifications here when something happens
                 </p>
               </div>
             ) : (

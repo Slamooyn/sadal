@@ -1,4 +1,3 @@
-import { createServerClient } from '@supabase/ssr'
 import { NextResponse, type NextRequest } from 'next/server'
 
 const AUTH_ONLY_PAGES = ["/login", "/register", "/add_your_email", "/verify_email", "/create_password", "/welcome_page", "/welcome_animation"]
@@ -22,6 +21,9 @@ export async function middleware(request: NextRequest) {
     if (ALWAYS_PUBLIC.some((route) => pathname.startsWith(route))) {
       return NextResponse.next()
     }
+
+    // Dynamic import to avoid __dirname issues at module load time in Edge Runtime
+    const { createServerClient } = await import('@supabase/ssr')
 
     let supabaseResponse = NextResponse.next({ request })
 
@@ -68,6 +70,6 @@ export async function middleware(request: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|login_page_components).*)",
+    "/((?!_next/static|_next/image|favicon\\.ico|favicon\\.png|login_page_components|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)",
   ],
 }
