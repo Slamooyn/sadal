@@ -283,14 +283,14 @@ export default function ExplorePage() {
 
     const userIds = [...new Set(postsData.map((p) => p.user_id))];
 
-    // 3. Parallel: profiles + outfit_sets + saved_posts
+    // 3. Parallel: profiles + outfit_sets (with created_at) + saved_posts
     const [profilesRes, outfitSetsRes, savedRes] = await Promise.all([
       supabase.from("profiles").select("id, username").in("id", userIds),
       supabase
         .from("outfit_sets")
-        .select("id, user_id, theme")
+        .select("id, user_id, theme, created_at")
         .in("user_id", userIds)
-        .order("id", { ascending: false }),
+        .order("created_at", { ascending: false }),
       userId
         ? supabase.from("saved_posts").select("post_id").eq("user_id", userId)
         : Promise.resolve({ data: [] as { post_id: number }[], error: null }),
@@ -299,15 +299,29 @@ export default function ExplorePage() {
     const outfitSets = outfitSetsRes.data ?? [];
     const savedPostIds = new Set((savedRes.data ?? []).map((s) => s.post_id));
 
-    // 4. Per (user_id, theme) → latest outfit_set id (already desc ordered)
-    const latestSetByKey: Record<string, number> = {};
+    // 4. Group all outfit_sets by (user_id, theme), already sorted desc by created_at
+    const setsByKey: Record<string, typeof outfitSets> = {};
     for (const os of outfitSets) {
       const key = `${os.user_id}__${os.theme}`;
-      if (!(key in latestSetByKey)) latestSetByKey[key] = os.id;
+      if (!setsByKey[key]) setsByKey[key] = [];
+      setsByKey[key].push(os);
+    }
+
+    // 4b. Per post → find the most recent outfit_set created at or before posted_at
+    const postToSetId: Record<number, number> = {};
+    for (const p of postsData) {
+      const key = `${p.user_id}__${p.theme}`;
+      const candidates = setsByKey[key] ?? [];
+      if (candidates.length === 0) continue;
+      const postedAt = new Date(p.posted_at).getTime();
+      // candidates sorted desc — first one at or before posted_at is the right match
+      const match = candidates.find((os) => new Date(os.created_at).getTime() <= postedAt);
+      // fallback: use earliest available (last in desc list) if all were created after posted_at
+      postToSetId[p.id] = (match ?? candidates[candidates.length - 1]).id;
     }
 
     // 5. Outfit images via outfit_set_items → clothing_items
-    const outfitSetIds = Object.values(latestSetByKey);
+    const outfitSetIds = [...new Set(Object.values(postToSetId))];
     const itemsBySetId: Record<number, OutfitImage[]> = {};
 
     if (outfitSetIds.length > 0) {
@@ -342,8 +356,7 @@ export default function ExplorePage() {
 
     // 7. Assemble
     const assembled: ExplorePost[] = postsData.map((p) => {
-      const key = `${p.user_id}__${p.theme}`;
-      const setId = latestSetByKey[key];
+      const setId = postToSetId[p.id];
       return {
         id: p.id,
         user_id: p.user_id,
