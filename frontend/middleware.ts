@@ -7,6 +7,11 @@ const ALWAYS_PUBLIC = ["/welcome_animation", "/auth_redirect", "/onboarding", "/
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
+  // Guard: if Supabase env vars are missing, let the request through instead of crashing
+  if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    return NextResponse.next()
+  }
+
   if (pathname.startsWith("/api")) return NextResponse.next()
 
   if (ALWAYS_PUBLIC.some((route) => pathname.startsWith(route))) {
