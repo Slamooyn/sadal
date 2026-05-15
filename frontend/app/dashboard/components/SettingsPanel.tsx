@@ -2,7 +2,7 @@
 
 import { useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
-import { User, Lock } from "lucide-react";
+import { UserCircle2, UserCog } from "lucide-react";
 
 interface SettingsPanelProps {
   open: boolean;
@@ -44,48 +44,55 @@ export default function SettingsPanel({ open, onClose }: SettingsPanelProps) {
   return (
     <div
       ref={panelRef}
-      className="fixed z-50 top-[30px] bottom-[30px] flex flex-col gap-3 p-5"
+      className="fixed z-50 flex flex-col"
       style={{
-        left: 166, // sidebar width(106) + sidebar margin-left(30) + gap(30)
-        width: 260,
-        backgroundColor: "#3D47D6",
+        left: 166,
+        top: 30,
+        bottom: 30,
+        width: 480,
+        backgroundColor: "#4361ee",
         borderRadius: 22,
         boxShadow: "0 8px 40px rgba(0,0,0,0.35)",
         transform: open ? "translateX(0)" : "translateX(-120%)",
         opacity: open ? 1 : 0,
         transition: "transform 0.35s cubic-bezier(0.22,1,0.36,1), opacity 0.25s ease",
         pointerEvents: open ? "auto" : "none",
+        padding: "48px 44px",
       }}
     >
-      <h3
-        className="text-white font-bold text-lg px-2 pt-2 pb-4"
-        style={{ borderBottom: "1px solid rgba(255,255,255,0.15)" }}
-      >
+      {/* Title */}
+      <h1 className="text-white font-bold leading-tight mb-12" style={{ fontSize: 64 }}>
         Settings
-      </h3>
+      </h1>
 
+      {/* Profile Setting */}
       <button
         onClick={() => {
           onClose();
           router.push("/settings/profile");
         }}
-        className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-white font-medium
-          hover:bg-white/15 active:scale-[0.97] transition-all duration-200 text-left"
+        className="flex items-center gap-4 text-white hover:bg-white/10 active:scale-[0.97] transition-all duration-200 text-left rounded-xl px-3 py-3 mb-3"
       >
-        <User size={20} strokeWidth={2} />
-        <span>👤 Profile Setting</span>
+        <UserCircle2 size={32} strokeWidth={1.5} className="shrink-0" />
+        <span style={{ fontSize: 22 }}>
+          <span className="font-bold">Profile</span>
+          <span className="font-light"> Setting</span>
+        </span>
       </button>
 
+      {/* Account Setting */}
       <button
         onClick={() => {
           onClose();
           router.push("/settings/account");
         }}
-        className="flex items-center gap-3 px-4 py-3.5 rounded-xl text-white font-medium
-          hover:bg-white/15 active:scale-[0.97] transition-all duration-200 text-left"
+        className="flex items-center gap-4 text-white hover:bg-white/10 active:scale-[0.97] transition-all duration-200 text-left rounded-xl px-3 py-3"
       >
-        <Lock size={20} strokeWidth={2} />
-        <span>🔐 Account Setting</span>
+        <UserCog size={32} strokeWidth={1.5} className="shrink-0" />
+        <span style={{ fontSize: 22 }}>
+          <span className="font-bold">Account</span>
+          <span className="font-light"> Setting</span>
+        </span>
       </button>
     </div>
   );
