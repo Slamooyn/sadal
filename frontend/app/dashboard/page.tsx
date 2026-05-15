@@ -5,6 +5,7 @@ import Image from "next/image";
 import { CheckCircle, Clock, CircleX, Shirt } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
+import { createClient } from "@/lib/supabase/client";
 
 // ─── Types ─────────────────────────────────────────────────────────────────────
 
@@ -108,36 +109,14 @@ export default function DashboardPage() {
   const [error, setError]               = useState<string | null>(null);
 
   useEffect(() => {
-    const mood  = localStorage.getItem("fashai_mood")  ?? "";
-    const style = localStorage.getItem("fashai_style") ?? "";
+    let cancelled = false;
 
-    fetch("/api/recommendation", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ mood, style }),
-      cache: "no-store",
-    })
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP ${res.status}`);
-        return res.json();
-      })
-      .then((data) => {
-        if (!Array.isArray(data.outfits) || data.outfits.length === 0) {
-          throw new Error("Empty outfits");
-        }
+    async function loadOutfits() {
+      const mood  = localStorage.getItem("fashai_mood")  ?? "";
+      const style = localStorage.getItem("fashai_style") ?? "";
 
-        // Phase 1 done — show cards with title + photo shimmer immediately
-        const base: OutfitCard[] = data.outfits.map(
-          (o: { name: string; description: string; items: string[]; imageQuery: string }) => ({
-            ...o,
-            imageUrl: null,
-          })
-        );
-        setOutfits(base);
-        setLoading(false);
-
-        // Phase 2 — fetch all photos in parallel, update imageUrl as they arrive
-        Promise.all(
+      async function fetchAndSetPhotos(base: OutfitCard[]) {
+        const urls = await Promise.all(
           base.map((outfit) =>
             fetch("/api/photos", {
               method: "POST",
@@ -148,16 +127,99 @@ export default function DashboardPage() {
               .then((d) => (typeof d.url === "string" ? d.url : null))
               .catch(() => null)
           )
-        ).then((urls) => {
-          setOutfits((prev) =>
-            prev.map((o, i) => ({ ...o, imageUrl: urls[i] ?? null }))
-          );
+        );
+        if (!cancelled) {
+          setOutfits((prev) => prev.map((o, i) => ({ ...o, imageUrl: urls[i] ?? null })));
+        }
+      }
+
+      // Fix 2: check sessionStorage before calling Gemini
+      const cached = sessionStorage.getItem("fashai_outfits");
+      if (cached) {
+        try {
+          const saved = JSON.parse(cached) as Array<{ name: string; description: string; items: string[]; imageQuery: string }>;
+          if (Array.isArray(saved) && saved.length > 0) {
+            const base: OutfitCard[] = saved.map((o) => ({ ...o, imageUrl: null }));
+            if (!cancelled) { setOutfits(base); setLoading(false); }
+            fetchAndSetPhotos(base);
+            return;
+          }
+        } catch { /* corrupt cache — fall through to fresh fetch */ }
+      }
+
+      // Fix 3: query user's wardrobe from Supabase
+      const supabase = createClient();
+      type WardrobeDetail = { name: string; type: string; theme: string; color: string };
+      let wardrobeItems: WardrobeDetail[] = [];
+
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        if (sessionData.session) {
+          const userId = sessionData.session.user.id;
+
+          const { data: wardrobes } = await supabase
+            .from("wardrobes")
+            .select("id")
+            .eq("user_id", userId);
+
+          if (wardrobes && wardrobes.length > 0) {
+            const wardrobeIds = wardrobes.map((w: { id: number }) => w.id);
+
+            const { data: wardrobeItemsData } = await supabase
+              .from("wardrobe_items")
+              .select("clothing_item_id")
+              .in("wardrobe_id", wardrobeIds);
+
+            if (wardrobeItemsData && wardrobeItemsData.length > 0) {
+              const clothingIds = wardrobeItemsData.map((wi: { clothing_item_id: number }) => wi.clothing_item_id);
+
+              const { data: clothingItems } = await supabase
+                .from("clothing_items")
+                .select("name, type, theme, color")
+                .in("id", clothingIds);
+
+              if (clothingItems) wardrobeItems = clothingItems as WardrobeDetail[];
+            }
+          }
+        }
+      } catch { /* wardrobe query failed — proceed without it */ }
+
+      // Fetch from Gemini
+      try {
+        const res = await fetch("/api/recommendation", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ mood, style, wardrobeItems }),
+          cache: "no-store",
         });
-      })
-      .catch(() => {
-        setError("Tidak dapat memuat rekomendasi outfit.");
-        setLoading(false);
-      });
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const data = await res.json();
+
+        if (!Array.isArray(data.outfits) || data.outfits.length === 0) {
+          throw new Error("Empty outfits");
+        }
+
+        // Fix 2: cache result so re-visiting the page skips Gemini
+        sessionStorage.setItem("fashai_outfits", JSON.stringify(data.outfits));
+
+        const base: OutfitCard[] = data.outfits.map(
+          (o: { name: string; description: string; items: string[]; imageQuery: string }) => ({
+            ...o,
+            imageUrl: null,
+          })
+        );
+        if (!cancelled) { setOutfits(base); setLoading(false); }
+        fetchAndSetPhotos(base);
+      } catch {
+        if (!cancelled) {
+          setError("Tidak dapat memuat rekomendasi outfit.");
+          setLoading(false);
+        }
+      }
+    }
+
+    loadOutfits();
+    return () => { cancelled = true; };
   }, []);
 
   const total = outfits.length;

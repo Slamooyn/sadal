@@ -78,6 +78,8 @@ function parseOutfits(text: string): OutfitItem[] {
   });
 }
 
+type WardrobeItem = { name: string; type: string; theme: string; color: string };
+
 export async function POST(request: Request) {
   const { mood, style, wardrobeItems } = await request.json().catch(() => ({}));
 
@@ -105,11 +107,16 @@ export async function POST(request: Request) {
   console.log(`[recommendation] styleKey="${styleKey}" styleGuide=${styleGuide ? "FOUND" : "NOT FOUND (using generic fallback)"}`);
   console.log(`[recommendation] styleInstruction="${styleInstruction}"`);
 
+  const hasWardrobe = Array.isArray(wardrobeItems) && wardrobeItems.length > 0;
+  const wardrobeContext = hasWardrobe
+    ? `\n\nUser memiliki baju-baju berikut di wardrobenya:\n${(wardrobeItems as WardrobeItem[]).map((item) => `- ${item.name} (${item.type}, ${item.theme}, ${item.color})`).join("\n")}\nRekomendasikan outfit yang bisa dibuat dari kombinasi baju yang user miliki.`
+    : "";
+
   const prompt = `Respond with valid JSON only — no markdown, no backticks, no extra text.
 
 You are a fashion stylist. Generate 5 outfit recommendations for:
 - Mood: ${moodValue}
-- Style: ${styleValue}${Array.isArray(wardrobeItems) && wardrobeItems.length > 0 ? `\n- Wardrobe items: ${wardrobeItems.join(", ")}` : ""}
+- Style: ${styleValue}${wardrobeContext}
 
 ${styleInstruction}
 

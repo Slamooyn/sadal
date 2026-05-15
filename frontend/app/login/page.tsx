@@ -290,3 +290,11 @@ function LoginContent() {
     </div>
   );
 }
+
+export default function LoginPage() {
+  return (
+    <Suspense fallback={<div className="h-screen w-full bg-black" />}>
+      <LoginContent />
+    </Suspense>
+  );
+}

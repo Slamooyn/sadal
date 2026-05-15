@@ -16,9 +16,9 @@ const TYPES = [
 ];
 
 const THEMES = [
-  "Winter", "Summer", "Spring", "Autumn", 
-  "Casual", "Formal", "Sporty", "Streetwear", 
-  "Vintage", "Bohemian", "Minimalist", "Business"
+  { value: "winter", label: "Winter Clothes" },
+  { value: "summer", label: "Summer Clothes" },
+  { value: "sporty", label: "Sport Clothes"  },
 ];
 
 const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
@@ -34,6 +34,23 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  function resetForm() {
+    if (previewUrl) URL.revokeObjectURL(previewUrl);
+    setFile(null);
+    setPreviewUrl(null);
+    setType("");
+    setTheme("");
+    setName("");
+    setError(null);
+    setIsDragging(false);
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  }
+
+  function handleClose() {
+    resetForm();
+    onClose();
+  }
 
   if (!isOpen) return null;
 
@@ -79,7 +96,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
       const formData = new FormData();
       formData.append("file", file);
       formData.append("type", type);
-      formData.append("theme", theme.toLowerCase());
+      formData.append("theme", theme);
       if (name) formData.append("name", name);
 
       const res = await fetch("/api/remove-bg", {
@@ -93,6 +110,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
         throw new Error(result.error || "Upload failed");
       }
 
+      resetForm();
       onSuccess();
     } catch (err: any) {
       setError(err.message || "Something went wrong during upload.");
@@ -108,7 +126,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
         <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
           <h2 className="text-xl font-semibold text-gray-800">Upload Wardrobe</h2>
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isLoading}
             className="p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-500 disabled:opacity-50"
           >
@@ -194,7 +212,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
               >
                 <option value="">Select a theme</option>
                 {THEMES.map((t) => (
-                  <option key={t} value={t}>{t}</option>
+                  <option key={t.value} value={t.value}>{t.label}</option>
                 ))}
               </select>
             </div>
@@ -217,7 +235,7 @@ export default function UploadModal({ isOpen, onClose, onSuccess }: UploadModalP
         {/* Footer */}
         <div className="p-6 border-t border-gray-100 flex gap-3">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             disabled={isLoading}
             className="flex-1 py-3 px-4 rounded-xl border border-gray-200 font-medium text-gray-700 hover:bg-gray-50 transition-colors disabled:opacity-50"
           >
