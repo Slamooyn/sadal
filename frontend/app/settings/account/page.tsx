@@ -86,6 +86,11 @@ export default function AccountSettingPage() {
   const isGoogleUser =
     profile?.provider === "google" || sessionUser?.app_metadata?.provider === "google";
 
+  // Check if user already has a password identity
+  const hasPasswordIdentity = sessionUser?.identities?.some(
+    (identity) => identity.provider === "email"
+  ) ?? false;
+
   // Fetch profile from Supabase via API
   useEffect(() => {
     if (sessionStatus === "loading") return;
@@ -140,9 +145,32 @@ export default function AccountSettingPage() {
     }
     setSavingPassword(true);
     try {
-      await updateField("password", password);
+      // Use Supabase Auth's updateUser to set/change password
+      // This works for BOTH:
+      // 1. Google OAuth users setting a password for the first time (adds email identity)
+      // 2. Email users changing their existing password
+      const supabase = createClient();
+      const { error } = await supabase.auth.updateUser({
+        password,
+      });
+
+      if (error) {
+        showToast(error.message, "error");
+        setSavingPassword(false);
+        return;
+      }
+
       setPassword("");
-      showToast("Password updated!", "success");
+      showToast(
+        hasPasswordIdentity
+          ? "Password updated!"
+          : "Password set! You can now login with email + password.",
+        "success"
+      );
+
+      // Refresh session user to update identities
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) setSessionUser(user);
     } catch (err) {
       showToast(
         err instanceof Error ? err.message : "Failed to update password",
@@ -212,15 +240,29 @@ export default function AccountSettingPage() {
             </div>
           </div>
 
-          {/* Google notice */}
-          {isGoogleUser && (
+          {/* Google user — password setup notice */}
+          {isGoogleUser && !hasPasswordIdentity && (
+            <div
+              className="flex items-start gap-3 px-4 py-3.5 rounded-xl mb-8"
+              style={{ backgroundColor: "rgba(207,176,240,0.25)" }}
+            >
+              <Info size={18} className="text-purple-200 shrink-0 mt-0.5" />
+              <p className="text-white/90 text-sm leading-relaxed">
+                You signed in with Google. Set a password below to also be able to
+                log in with your email and password.
+              </p>
+            </div>
+          )}
+
+          {/* Google user — already has password */}
+          {isGoogleUser && hasPasswordIdentity && (
             <div
               className="flex items-start gap-3 px-4 py-3.5 rounded-xl mb-8"
               style={{ backgroundColor: "rgba(255,255,255,0.1)" }}
             >
-              <Info size={18} className="text-white/70 shrink-0 mt-0.5" />
+              <Check size={18} className="text-green-300 shrink-0 mt-0.5" />
               <p className="text-white/70 text-sm leading-relaxed">
-                You&apos;re signed in with Google. Email and password changes are managed through your Google account.
+                You&apos;re signed in with Google and also have a password set. You can log in with either method.
               </p>
             </div>
           )}
@@ -251,45 +293,58 @@ export default function AccountSettingPage() {
                 Change
               </button>
             </div>
+            {isGoogleUser && (
+              <p className="text-white/40 text-xs mt-1.5">
+                Email is managed by your Google account
+              </p>
+            )}
           </div>
 
           {/* Password */}
           <div className="mb-6">
-            <label className="text-white/80 text-sm font-medium block mb-2">Password</label>
+            <label className="text-white/80 text-sm font-medium block mb-2">
+              {isGoogleUser && !hasPasswordIdentity ? "Set Password" : "Password"}
+            </label>
             <div className="flex gap-3">
               <div className="relative flex-1">
                 <input
                   type={showPassword ? "text" : "password"}
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
-                  placeholder={isGoogleUser ? "Not available for Google accounts" : "Enter new password"}
-                  disabled={isGoogleUser}
+                  placeholder={
+                    isGoogleUser && !hasPasswordIdentity
+                      ? "Set a password for email login"
+                      : "Enter new password"
+                  }
                   className="w-full bg-white text-gray-900 rounded-xl px-4 py-3 pr-12 text-sm outline-none
-                    focus:ring-2 focus:ring-white/30 transition-all placeholder:text-gray-400
-                    disabled:bg-gray-200 disabled:text-gray-500 disabled:cursor-not-allowed"
+                    focus:ring-2 focus:ring-white/30 transition-all placeholder:text-gray-400"
                 />
                 <button
                   type="button"
                   onClick={() => setShowPassword(!showPassword)}
-                  disabled={isGoogleUser}
                   className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400
-                    hover:text-gray-600 transition-colors disabled:opacity-40"
+                    hover:text-gray-600 transition-colors"
                 >
                   {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                 </button>
               </div>
               <button
                 onClick={handleChangePassword}
-                disabled={savingPassword || isGoogleUser}
+                disabled={savingPassword}
                 className="px-6 py-3 rounded-xl text-white text-sm font-semibold transition-all duration-200
                   hover:brightness-110 active:scale-[0.96] disabled:opacity-40 disabled:cursor-not-allowed
                   flex items-center gap-2"
                 style={{ backgroundColor: "#7B2ABD" }}
               >
                 {savingPassword && <Loader2 size={14} className="animate-spin" />}
-                Change
+                {isGoogleUser && !hasPasswordIdentity ? "Set" : "Change"}
               </button>
             </div>
+            {isGoogleUser && !hasPasswordIdentity && (
+              <p className="text-white/40 text-xs mt-1.5">
+                Min 6 characters. After setting, you can log in with email + password too.
+              </p>
+            )}
           </div>
 
           {/* Logout */}

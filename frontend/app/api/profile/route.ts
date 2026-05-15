@@ -1,32 +1,21 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase } from "../../../lib/supabase/supabase";
+import { supabaseAdmin } from "../../../lib/supabase/admin";
 
-// Helper: extract email from fashai_token (format: user_{timestamp}_{email})
-function getEmailFromToken(token: string): string | null {
-  const parts = token.split("_");
-  if (parts.length >= 3) return parts.slice(2).join("_");
-  return null;
-}
-
-// Helper: get current user's email from cookies
+// Helper: get current user's email from cookies or query params
 async function getCurrentUserEmail(): Promise<{
   email: string | null;
   provider: string;
 }> {
   const cookieStore = await cookies();
+  // Legacy token support (can be removed once fully migrated)
   const token = cookieStore.get("fashai_token")?.value;
-  const nextAuthSession = cookieStore.get("authjs.session-token")?.value;
 
   if (token) {
-    const email = getEmailFromToken(token);
+    const parts = token.split("_");
+    const email = parts.length >= 3 ? parts.slice(2).join("_") : null;
     return { email, provider: "credentials" };
-  }
-
-  if (nextAuthSession) {
-    // For Google users, we need to look them up by provider
-    // We'll return a special marker — the session page will pass email from client
-    return { email: null, provider: "google" };
   }
 
   return { email: null, provider: "none" };
@@ -95,18 +84,58 @@ export async function PUT(request: Request) {
       return NextResponse.json({ error: "Invalid field" }, { status: 400 });
     }
 
-    // Google users cannot change email or password
-    if (provider === "google" && (field === "email" || field === "password")) {
+    // Google users cannot change email (managed by Google), but CAN set a password
+    if (provider === "google" && field === "email") {
       return NextResponse.json(
-        { error: "Google accounts cannot change email or password here" },
+        { error: "Google accounts cannot change email here" },
         { status: 403 }
       );
     }
 
     if (field === "password") {
-      // Password changes are not stored in profiles table
-      console.log(`\n🔐 Password change requested for: ${email}\n`);
-      return NextResponse.json({ success: true });
+      // Update password in Supabase Auth using admin client
+      try {
+        // Find user by email in auth.users
+        const { data: { users }, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+        
+        if (listError) {
+          console.error("[profile] List users error:", listError);
+          return NextResponse.json(
+            { error: "Failed to update password" },
+            { status: 500 }
+          );
+        }
+
+        const authUser = users.find((u) => u.email === email);
+        if (!authUser) {
+          return NextResponse.json(
+            { error: "User not found in auth system" },
+            { status: 404 }
+          );
+        }
+
+        const { error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+          authUser.id,
+          { password: value }
+        );
+
+        if (updateError) {
+          console.error("[profile] Password update error:", updateError);
+          return NextResponse.json(
+            { error: updateError.message || "Failed to update password" },
+            { status: 500 }
+          );
+        }
+
+        console.log(`\n🔐 Password updated for: ${email}\n`);
+        return NextResponse.json({ success: true });
+      } catch (err) {
+        console.error("[profile] Password update error:", err);
+        return NextResponse.json(
+          { error: "Failed to update password" },
+          { status: 500 }
+        );
+      }
     }
 
     // Update profile in Supabase

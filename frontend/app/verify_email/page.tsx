@@ -2,19 +2,18 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { useState, useEffect, useRef, Suspense } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
+import { createClient } from "@/lib/supabase/client";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState("");
-  const [code, setCode] = useState<string[]>(["", "", "", "", "", ""]);
-  const [error, setError] = useState("");
-  const [loading, setLoading] = useState(false);
   const [resendTimer, setResendTimer] = useState(0);
-  const inputs = useRef<(HTMLInputElement | null)[]>([]);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [resendMessage, setResendMessage] = useState("");
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);
@@ -40,109 +39,46 @@ function VerifyEmailContent() {
     }
   }, [resendTimer]);
 
-  // ✅ REMOVED: useEffect yang kirim OTP lagi saat email di-set
-  // OTP sudah dikirim dari halaman add_your_email, tidak perlu kirim ulang di sini
-
-  const handleChange = (value: string, index: number) => {
-    if (!/^\d?$/.test(value)) return;
-
-    const newCode = [...code];
-    newCode[index] = value;
-    setCode(newCode);
-    if (error) setError("");
-
-    if (value && index < 5) {
-      inputs.current[index + 1]?.focus();
-    }
-
-    if (value && index === 5) {
-      const fullCode = [...newCode].join("");
-      if (fullCode.length === 6) {
-        handleVerify(fullCode);
+  // Listen for auth state changes — if user confirms email in same browser, auto-redirect
+  useEffect(() => {
+    const supabase = createClient();
+    const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === "SIGNED_IN" && session) {
+        localStorage.setItem("fashai_is_new_user", "true");
+        router.push("/welcome_animation");
       }
-    }
-  };
+    });
 
-  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>, index: number) => {
-    if (e.key === "Backspace") {
-      if (code[index] === "" && index > 0) {
-        inputs.current[index - 1]?.focus();
-      } else {
-        const newCode = [...code];
-        newCode[index] = "";
-        setCode(newCode);
-      }
-    }
-  };
-
-  const handlePaste = (e: React.ClipboardEvent) => {
-    e.preventDefault();
-    const pastedData = e.clipboardData.getData("text").replace(/\D/g, "").slice(0, 6);
-    if (pastedData.length > 0) {
-      const newCode = [...code];
-      for (let i = 0; i < pastedData.length && i < 6; i++) {
-        newCode[i] = pastedData[i];
-      }
-      setCode(newCode);
-      const nextEmpty = newCode.findIndex((d) => d === "");
-      inputs.current[nextEmpty === -1 ? 5 : nextEmpty]?.focus();
-
-      if (pastedData.length === 6) {
-        handleVerify(pastedData);
-      }
-    }
-  };
-
-  const handleVerify = async (fullCode?: string) => {
-    const codeStr = fullCode || code.join("");
-    if (codeStr.length < 6) {
-      setError("Please enter the complete 6-digit code");
-      return;
-    }
-
-    setLoading(true);
-    setError("");
-
-    try {
-      const res = await fetch("/api/verify", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, code: codeStr }),
-      });
-
-      const data = await res.json();
-
-      if (!res.ok) {
-        setError(data.error || "Verification failed");
-        setLoading(false);
-        return;
-      }
-
-      router.push("/create_password");
-    } catch {
-      setError("Network error. Please try again.");
-      setLoading(false);
-    }
-  };
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, [router]);
 
   const handleResend = async () => {
-    if (resendTimer > 0) return;
-    setCode(["", "", "", "", "", ""]);
-    setError("");
+    if (resendTimer > 0 || !email) return;
+    setResendLoading(true);
+    setResendMessage("");
 
     try {
-      const res = await fetch("/api/verify", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+      const supabase = createClient();
+      const { error } = await supabase.auth.resend({
+        type: "signup",
+        email,
+        options: {
+          emailRedirectTo: `${window.location.origin}/auth/callback`,
+        },
       });
 
-      if (res.ok) {
+      if (error) {
+        setResendMessage(error.message);
+      } else {
+        setResendMessage("Confirmation email resent!");
         setResendTimer(60);
-        inputs.current[0]?.focus();
       }
     } catch {
-      setError("Failed to resend code");
+      setResendMessage("Failed to resend. Please try again.");
+    } finally {
+      setResendLoading(false);
     }
   };
 
@@ -220,17 +156,11 @@ function VerifyEmailContent() {
               className="text-black font-semibold"
               style={{ fontSize: "clamp(1rem, 1.8vw, 1.4rem)" }}
             >
-              Verify Your Email
+              Check Your Email
             </h2>
-            <span
-              className="text-black/50 font-light ml-1"
-              style={{ fontSize: "clamp(0.85rem, 1.4vw, 1.1rem)" }}
-            >
-              2 / 3
-            </span>
           </div>
           <div
-            className="relative z-10 w-full flex flex-col gap-4"
+            className="relative z-10 w-full flex flex-col gap-6"
             style={{
               maxWidth: "90%",
               transform: mounted ? "translateY(0)" : "translateY(40px)",
@@ -239,87 +169,74 @@ function VerifyEmailContent() {
               transitionDelay: "0.65s",
             }}
           >
-            <div className="flex gap-2 mb-2">
-              <div className="h-1 w-8 rounded-full bg-white" />
-              <div className="h-1 w-8 rounded-full bg-white" />
-              <div className="h-1 w-8 rounded-full bg-white/30" />
+            {/* Email icon */}
+            <div className="flex justify-center">
+              <div className="w-20 h-20 rounded-full bg-white/15 flex items-center justify-center">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="2" y="4" width="20" height="16" rx="2" />
+                  <path d="M22 4L12 13L2 4" />
+                </svg>
+              </div>
             </div>
 
-            <p className="text-black text-lg mb-2">
-              We just sent a 6-digit code to <br />
-              <span className="font-semibold">{email || "your email"}</span>, enter it below:
-            </p>
+            <div className="text-center">
+              <p className="text-white text-lg mb-2">
+                We&apos;ve sent a confirmation link to
+              </p>
+              <p className="text-white font-bold text-xl">
+                {email || "your email"}
+              </p>
+            </div>
 
-            <div className="w-full">
-              <p className="text-black mb-2">Code</p>
+            <div className="bg-white/10 rounded-2xl p-5 space-y-3">
+              <p className="text-white/80 text-sm leading-relaxed">
+                📧 Check your inbox and click the confirmation link to activate your account.
+              </p>
+              <p className="text-white/60 text-xs leading-relaxed">
+                The link will expire in 24 hours. Check your spam folder if you don&apos;t see it.
+              </p>
+            </div>
 
-              <div className="flex justify-between gap-2 mb-2" onPaste={handlePaste}>
-                {code.map((digit, i) => (
-                  <input
-                    key={i}
-                    ref={(el) => {
-                      inputs.current[i] = el;
-                    }}
-                    value={digit}
-                    onChange={(e) => handleChange(e.target.value, i)}
-                    onKeyDown={(e) => handleKeyDown(e, i)}
-                    maxLength={1}
-                    inputMode="numeric"
-                    className={`w-14 h-14 text-center text-xl text-black rounded-xl bg-white outline-none border transition-all
-                      ${error ? "border-red-400 ring-2 ring-red-300" : "border-gray-300 focus:border-white focus:ring-2 focus:ring-white/50"}`}
-                  />
-                ))}
-              </div>
+            {resendMessage && (
+              <p className={`text-sm text-center ${resendMessage.includes("resent") ? "text-green-300" : "text-red-300"}`}>
+                {resendMessage}
+              </p>
+            )}
 
-              {error && (
-                <p className="text-red-300 text-sm mb-2">{error}</p>
-              )}
-
-              {resendTimer > 0 && (
-                <p className="text-white/50 text-sm mb-4">
-                  Resend code in {resendTimer}s
-                </p>
-              )}
-
+            {resendTimer > 0 ? (
+              <p className="text-white/50 text-sm text-center">
+                Resend email in {resendTimer}s
+              </p>
+            ) : (
               <button
-                onClick={() => handleVerify()}
-                disabled={loading || code.join("").length < 6}
+                onClick={handleResend}
+                disabled={resendLoading}
                 className="w-full bg-[#CFB0F0] hover:bg-[#2B0058] text-white font-semibold py-4 rounded-2xl transition
                   disabled:opacity-60 disabled:cursor-not-allowed"
               >
-                {loading ? (
-                  <span className="flex items-center justify-center gap-2">
-                    <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
-                    Verifying...
-                  </span>
-                ) : "Verify email"}
+                {resendLoading ? "Sending..." : "Resend confirmation email"}
               </button>
+            )}
 
-              <p className="text-white/80 text-center mt-6">
-                Wrong email?{" "}
-                <Link
-                  href="/add_your_email"
-                  className="font-bold underline cursor-pointer hover:text-white transition-colors"
-                >
-                  Change email
-                </Link>
-              </p>
+            <p className="text-white/80 text-center">
+              Wrong email?{" "}
+              <Link
+                href="/add_your_email"
+                className="font-bold underline cursor-pointer hover:text-white transition-colors"
+              >
+                Go back
+              </Link>
+            </p>
 
-              {resendTimer === 0 && (
-                <p className="text-white/80 text-center mt-2">
-                  Didn&apos;t receive the code?{" "}
-                  <button
-                    onClick={handleResend}
-                    className="font-bold underline cursor-pointer hover:text-white transition-colors"
-                  >
-                    Resend code
-                  </button>
-                </p>
-              )}
-            </div>
+            <p className="text-white/60 text-center text-sm">
+              Already confirmed?{" "}
+              <Link
+                href="/login"
+                className="font-bold underline cursor-pointer hover:text-white transition-colors"
+              >
+                Log in
+              </Link>
+            </p>
           </div>
         </div>
       </div>
