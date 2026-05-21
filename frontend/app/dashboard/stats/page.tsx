@@ -62,7 +62,7 @@ export default function StatsPage() {
     }
 
     fetchStats();
-  }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  }, []); 
 
   const weeklyTotal = dailyCounts.reduce((a, b) => a + b, 0);
   const maxCount    = Math.max(...dailyCounts, 1);
@@ -87,8 +87,6 @@ export default function StatsPage() {
           searchValue={searchValue}
           onSearchChange={setSearchValue}
         />
-
-        {/* Analytics Cards */}
         <div className="flex gap-5 mt-[26px] shrink-0">
           {ANALYTICS_CARDS.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
             <div
@@ -108,8 +106,6 @@ export default function StatsPage() {
             </div>
           ))}
         </div>
-
-        {/* Outfit Stats heading */}
         <div className="mt-[26px] shrink-0">
           <p className="text-black text-[22px] font-semibold leading-tight">Outfit Stats</p>
           <p className="text-[#4361ee] text-[22px] font-bold leading-tight mt-0.5">
@@ -118,8 +114,6 @@ export default function StatsPage() {
               : `${weeklyTotal} Outfit${weeklyTotal !== 1 ? "s" : ""} Made this Week`}
           </p>
         </div>
-
-        {/* Chart area */}
         <div className="mt-5 flex-1 min-h-0 flex flex-col mb-[30px]">
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -158,8 +152,6 @@ export default function StatsPage() {
               </div>
             </div>
           )}
-
-          {/* X-axis — always visible */}
           <div className="shrink-0">
             <div className="h-[3px] bg-black rounded-[39px]" />
             <div className="flex justify-between pt-3 px-0.5">

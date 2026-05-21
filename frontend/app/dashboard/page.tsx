@@ -7,17 +7,15 @@ import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import { createClient } from "@/lib/supabase/client";
 
-// ─── Types ─────────────────────────────────────────────────────────────────────
 
 interface OutfitCard {
   name: string;
   description: string;
   items: string[];
   imageQuery: string;
-  imageUrl: string | null; // null = photo still loading or unavailable
+  imageUrl: string | null;
 }
 
-// ─── Data ──────────────────────────────────────────────────────────────────────
 
 const ANALYTICS_CARDS = [
   { label: "Orders Completed",     value: "300K", icon: CheckCircle, iconBg: "#dcfce7", iconColor: "#16a34a" },
