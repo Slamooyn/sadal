@@ -17,12 +17,7 @@ interface OutfitCard {
 }
 
 
-const ANALYTICS_CARDS = [
-  { label: "Orders Completed",     value: "300K", icon: CheckCircle, iconBg: "#dcfce7", iconColor: "#16a34a" },
-  { label: "Orders Pending",       value: "10K",  icon: Clock,       iconBg: "#fef3c7", iconColor: "#d97706" },
-  { label: "Orders Cancelled",     value: "100K", icon: CircleX,     iconBg: "#fee2e2", iconColor: "#dc2626" },
-  { label: "Total Outfit Created", value: "350K", icon: Shirt,       iconBg: "#ede9fe", iconColor: "#7c3aed" },
-];
+
 
 // ─── Sub-components ─────────────────────────────────────────────────────────────
 
@@ -247,27 +242,6 @@ export default function DashboardPage() {
           searchValue={searchValue}
           onSearchChange={setSearchValue}
         />
-
-        {/* Analytics Cards */}
-        <div className="flex gap-5 mt-[26px] shrink-0">
-          {ANALYTICS_CARDS.map(({ label, value, icon: Icon, iconBg, iconColor }) => (
-            <div
-              key={label}
-              className="bg-white rounded-[14px] p-[30px] flex gap-[33px] items-center flex-1 min-w-0 hover:shadow-md transition-shadow duration-200 cursor-default"
-            >
-              <div
-                className="size-[54px] rounded-xl flex items-center justify-center shrink-0"
-                style={{ backgroundColor: iconBg }}
-              >
-                <Icon size={26} strokeWidth={2} style={{ color: iconColor }} />
-              </div>
-              <div className="flex flex-col leading-normal">
-                <span className="text-[#b9b9b9] text-sm font-medium">{label}</span>
-                <span className="text-black text-2xl font-semibold">{value}</span>
-              </div>
-            </div>
-          ))}
-        </div>
 
         {/* Your Outfit For Today section */}
         <div className="flex flex-col items-center mt-10 pb-8">
