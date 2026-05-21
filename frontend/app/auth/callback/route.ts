@@ -8,7 +8,6 @@ export async function GET(request: NextRequest) {
   const code = searchParams.get('code')
   const next = searchParams.get('next') ?? '/auth_redirect'
 
-  // Handle error responses from Supabase (e.g., database errors)
   const error_description = searchParams.get('error_description')
   if (error_description) {
     console.error('[auth/callback] Supabase error:', error_description)
@@ -16,8 +15,6 @@ export async function GET(request: NextRequest) {
       `${origin}/login?error=${encodeURIComponent(error_description)}`
     )
   }
-
-  // Handle token_hash for email confirmation (magic link / confirm email flow)
   const token_hash = searchParams.get('token_hash')
   const type = searchParams.get('type')
 
@@ -44,7 +41,6 @@ export async function GET(request: NextRequest) {
     })
 
     if (!error) {
-      // Email confirmed successfully
       return NextResponse.redirect(`${origin}${next}`)
     }
 
@@ -54,7 +50,6 @@ export async function GET(request: NextRequest) {
     )
   }
 
-  // Handle OAuth code exchange
   if (code) {
     const cookieStore = await cookies()
     const supabase = createServerClient(

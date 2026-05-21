@@ -3,9 +3,6 @@
 import { useEffect } from "react";
 import { useRouter } from "next/navigation";
 
-// This page is no longer needed in the new auth flow.
-// Email + password are now collected together in /add_your_email.
-// Redirect users who land here to the signup page.
 export default function CreatePasswordPage() {
   const router = useRouter();
 

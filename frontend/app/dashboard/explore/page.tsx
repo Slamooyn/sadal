@@ -104,7 +104,6 @@ function OutfitDetailModal({
           </div>
         </div>
 
-        {/* 3 outfit slot images */}
         <div className="grid grid-cols-3 gap-4 px-7">
           {SLOTS.map(({ key, label }) => {
             const imgUrl = getSlotImage(key);
@@ -130,7 +129,6 @@ function OutfitDetailModal({
           })}
         </div>
 
-        {/* Caption + saves */}
         <div className="px-7 pt-5 pb-6">
           {post.caption && (
             <p className="text-[14px] text-gray-700 mb-3 leading-relaxed">{post.caption}</p>

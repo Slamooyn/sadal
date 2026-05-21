@@ -15,7 +15,7 @@ export default function AddYourEmailPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-  const [step, setStep] = useState(1); // 1 = email, 2 = email + password
+  const [step, setStep] = useState(1); 
 
   useEffect(() => {
     const t = setTimeout(() => setMounted(true), 50);

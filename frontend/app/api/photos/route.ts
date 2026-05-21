@@ -22,7 +22,7 @@ export async function POST(request: Request) {
 
     const res = await fetch(url, {
       headers: { Authorization: process.env.PEXELS_API_KEY! },
-      next: { revalidate: 3600 }, // cache same query for 1 hour
+      next: { revalidate: 3600 },
     });
 
     if (!res.ok) {
