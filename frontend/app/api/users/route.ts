@@ -51,9 +51,10 @@ export async function POST(request: Request) {
     }
 
 
+    const profileId = crypto.randomUUID();
     await supabase.from("profiles").upsert(
       {
-        id: email,
+        id: profileId,
         email,
         username: email.split("@")[0],
         bio: "",

@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabase } from "../../../lib/supabase/supabase";
 import { supabaseAdmin } from "../../../lib/supabase/admin";
+import crypto from "crypto";
 
 
 async function getCurrentUserEmail(): Promise<{
@@ -41,7 +42,7 @@ export async function GET(request: Request) {
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
-      .eq("id", email)
+      .eq("email", email)
       .single();
 
     if (error || !data) {
@@ -144,14 +145,14 @@ export async function PUT(request: Request) {
     const { data: existing } = await supabase
       .from("profiles")
       .select("id")
-      .eq("id", email)
+      .eq("email", email)
       .single();
 
     if (existing) {
       const { error } = await supabase
         .from("profiles")
         .update(updateData)
-        .eq("id", email);
+        .eq("email", email);
 
       if (error) {
         console.error("[profile] update error:", error.message);
@@ -161,8 +162,22 @@ export async function PUT(request: Request) {
         );
       }
     } else {
+      let userId = null;
+      try {
+        const { data: { users } } = await supabaseAdmin.auth.admin.listUsers();
+        const authUser = users.find((u) => u.email === email);
+        if (authUser) {
+          userId = authUser.id;
+        }
+      } catch (err) {
+        console.error("Failed to find user UUID in admin auth:", err);
+      }
+
+      const fallbackId = crypto.randomUUID();
+      const insertId = userId || fallbackId;
+
       const { error } = await supabase.from("profiles").insert({
-        id: email,
+        id: insertId,
         email,
         username: field === "username" ? value : email.split("@")[0],
         bio: field === "bio" ? value : "",
