@@ -1,17 +1,8 @@
 import { NextResponse } from "next/server";
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import { supabase } from "../../../lib/supabase/supabase";
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY!);
-
-
-const FALLBACK_OUTFITS = [
-  { name: "Casual Classic",  description: "Effortless everyday comfort",       items: ["White t-shirt", "Blue jeans", "White sneakers"],          imageQuery: "casual everyday fashion outfit clothing" },
-  { name: "Street Chic",     description: "Bold and urban street style",       items: ["Graphic hoodie", "Cargo pants", "Chunky sneakers"],        imageQuery: "urban streetwear fashion outfit clothing" },
-  { name: "Smart Casual",    description: "Polished yet relaxed look",         items: ["Oxford shirt", "Chinos", "Loafers"],                       imageQuery: "smart casual fashion outfit clothing" },
-  { name: "Sporty Fresh",    description: "Active and energetic all-day look", items: ["Sports tee", "Track pants", "Running shoes"],              imageQuery: "sporty athletic fashion outfit clothing" },
-  { name: "Minimal Vibes",   description: "Clean lines, calm aesthetic",       items: ["Plain crewneck", "Straight-leg trousers", "Sneakers"],     imageQuery: "minimalist fashion outfit clothing style" },
-];
-
 
 async function generateWithRetry(
   prompt: string,
@@ -47,102 +38,149 @@ async function generateWithRetry(
   throw new Error("All models exhausted");
 }
 
-type OutfitItem = {
+type OutfitItemDetail = {
+  id: string;
   name: string;
-  description: string;
-  items: string[];
-  imageQuery: string;
+  processed_image_url: string | null;
 };
 
-function parseOutfits(text: string): OutfitItem[] {
-  let data: { outfits?: unknown };
-
-  try {
-    data = JSON.parse(text);
-  } catch {
-    const match = text.match(/\{[\s\S]*\}/);
-    if (!match) throw new Error("No JSON object found in response");
-    data = JSON.parse(match[0]);
-  }
-
-  if (!Array.isArray(data.outfits) || data.outfits.length === 0) {
-    throw new Error("Parsed JSON has no outfits array");
-  }
-
-
-  return (data.outfits as OutfitItem[]).map((o) => {
-    const base = o.imageQuery?.trim() || `${o.name} fashion outfit`;
-    const lower = base.toLowerCase();
-    const hasFashion = lower.includes("fashion") || lower.includes("outfit") || lower.includes("clothing");
-    return { ...o, imageQuery: hasFashion ? base : `${base} fashion outfit clothing` };
-  });
-}
-
-type WardrobeItem = { name: string; type: string; theme: string; color: string };
+type DBOutfit = {
+  name: string;
+  description: string;
+  shirt: OutfitItemDetail | null;
+  pants: OutfitItemDetail | null;
+  shoes: OutfitItemDetail | null;
+};
 
 export async function POST(request: Request) {
-  const { mood, style, wardrobeItems } = await request.json().catch(() => ({}));
+  try {
+    const { mood, style } = await request.json().catch(() => ({}));
 
-  const moodValue  = mood  || "relaxed";
-  const styleValue = style || "casual";
+    const moodValue  = mood  || "relaxed";
+    const styleValue = style || "casual";
 
-  console.log(`[recommendation] mood="${moodValue}" style="${styleValue}"`);
+    console.log(`[recommendation] DB-mode: mood="${moodValue}" style="${styleValue}"`);
 
-  const STYLE_GUIDE: Record<string, { pieces: string; imageHint: string }> = {
-    sporty:     { pieces: "athletic wear only: hoodies, joggers, track jackets, jerseys, compression tights, sports bras, sneakers, running shoes — NO shirts, chinos, loafers, or formal pieces", imageHint: "athletic sportswear outfit jogger hoodie" },
-    casual:     { pieces: "relaxed everyday wear: t-shirts, jeans, shorts, flannel shirts, slip-on sneakers, canvas shoes", imageHint: "casual everyday fashion outfit" },
-    formal:     { pieces: "formal / business wear: blazers, dress shirts, trousers, pencil skirts, heels, oxfords, ties", imageHint: "formal business fashion outfit" },
-    streetwear: { pieces: "urban street style: graphic tees, oversized hoodies, cargo pants, chunky sneakers, caps, puffer jackets", imageHint: "urban streetwear fashion outfit" },
-    elegant:    { pieces: "elegant / chic wear: midi dresses, tailored coats, silk blouses, heeled boots, minimalist jewelry", imageHint: "elegant chic fashion outfit" },
-    bohemian:   { pieces: "boho / free-spirit wear: flowy dresses, wide-leg pants, fringe vests, sandals, headbands, layered accessories", imageHint: "bohemian boho fashion outfit" },
-    minimalist: { pieces: "clean minimalist wear: plain crewnecks, straight-leg trousers, monochrome sets, simple sneakers, tote bags", imageHint: "minimalist clean fashion outfit" },
-  };
+    // Fetch all clothing items with processed images from Supabase
+    const { data: clothingItems, error: dbError } = await supabase
+      .from("clothing_items")
+      .select("id, name, type, theme, processed_image_url")
+      .not("processed_image_url", "is", null);
 
-  const styleKey = styleValue.toLowerCase();
-  const styleGuide = STYLE_GUIDE[styleKey];
-  const styleInstruction = styleGuide
-    ? `CRITICAL — style is "${styleValue}": every outfit MUST use ${styleGuide.pieces}. imageQuery examples for this style: "${styleGuide.imageHint}", "${styleValue.toLowerCase()} fashion outfit clothing".`
-    : `CRITICAL — style is "${styleValue}": every outfit MUST look like genuine ${styleValue} fashion. Use only clothing pieces and imageQuery keywords that clearly represent ${styleValue} style.`;
+    if (dbError) {
+      console.error("[recommendation] database query failed:", dbError);
+    }
 
-  console.log(`[recommendation] styleKey="${styleKey}" styleGuide=${styleGuide ? "FOUND" : "NOT FOUND (using generic fallback)"}`);
-  console.log(`[recommendation] styleInstruction="${styleInstruction}"`);
+    const items = clothingItems || [];
+    console.log(`[recommendation] Loaded ${items.length} items from Supabase`);
 
-  const hasWardrobe = Array.isArray(wardrobeItems) && wardrobeItems.length > 0;
-  const wardrobeContext = hasWardrobe
-    ? `\n\nUser memiliki baju-baju berikut di wardrobenya:\n${(wardrobeItems as WardrobeItem[]).map((item) => `- ${item.name} (${item.type}, ${item.theme}, ${item.color})`).join("\n")}\nRekomendasikan outfit yang bisa dibuat dari kombinasi baju yang user miliki.`
-    : "";
+    // Map items for rapid lookup
+    const catalogMap = new Map<string, any>();
+    items.forEach((item) => catalogMap.set(item.id, item));
 
-  const prompt = `Respond with valid JSON only — no markdown, no backticks, no extra text.
+    // If database has no items, create high-quality mock items to avoid blank screens
+    if (items.length === 0) {
+      const mockItems = [
+        { id: "mock-s1", name: "Casual Denim Shirt", type: "shirt", theme: "summer", processed_image_url: "https://images.unsplash.com/photo-1541101767792-f9b472c0db39?q=80&w=300&auto=format&fit=crop" },
+        { id: "mock-s2", name: "Classic White Tee", type: "shirt", theme: "summer", processed_image_url: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=300&auto=format&fit=crop" },
+        { id: "mock-p1", name: "Slim Fit Blue Jeans", type: "pants", theme: "summer", processed_image_url: "https://images.unsplash.com/photo-1542272604-787c3835535d?q=80&w=300&auto=format&fit=crop" },
+        { id: "mock-p2", name: "Beige Summer Chinos", type: "pants", theme: "summer", processed_image_url: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=300&auto=format&fit=crop" },
+        { id: "mock-sh1", name: "Minimalist White Sneakers", type: "shoes", theme: "summer", processed_image_url: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=300&auto=format&fit=crop" },
+        { id: "mock-sh2", name: "Brown Leather Loafers", type: "shoes", theme: "summer", processed_image_url: "https://images.unsplash.com/photo-1533867617858-e7b97e060509?q=80&w=300&auto=format&fit=crop" },
+      ];
+      mockItems.forEach(item => {
+        items.push(item);
+        catalogMap.set(item.id, item);
+      });
+    }
 
-You are a fashion stylist. Generate 5 outfit recommendations for:
+    // Format catalog for Gemini prompt
+    const formattedCatalog = items
+      .map((item) => `- ID: "${item.id}" | Name: "${item.name}" | Type: "${item.type}" | Theme: "${item.theme}"`)
+      .join("\n");
+
+    const prompt = `Respond with valid JSON only — no markdown, no backticks, no extra text.
+
+You are a professional fashion stylist. Below is the catalog of actual clothing items available in the user's wardrobe database.
+Create exactly 5 beautiful, stylish, and perfectly matching outfit recommendations for:
 - Mood: ${moodValue}
-- Style: ${styleValue}${wardrobeContext}
+- Style: ${styleValue}
 
-${styleInstruction}
+Available Clothing Catalog:
+${formattedCatalog}
+
+For each outfit recommendation, select exactly ONE shirt (Type: "shirt"), ONE pants (Type: "pants"), and ONE shoes (Type: "shoes") from the catalog above. Make sure the combination makes logical and aesthetic sense, and beautifully matches the requested style ("${styleValue}") and mood ("${moodValue}").
 
 Use exactly this JSON structure:
-{"outfits":[{"name":"Outfit Name","description":"Short vibe under 12 words","items":["Piece 1","Piece 2","Piece 3"],"imageQuery":"search query"}]}
+{
+  "outfits": [
+    {
+      "name": "Outfit Name",
+      "description": "Short vibe under 12 words",
+      "shirt": { "id": "selected_shirt_id", "name": "selected_shirt_name" },
+      "pants": { "id": "selected_pants_id", "name": "selected_pants_name" },
+      "shoes": { "id": "selected_shoes_id", "name": "selected_shoes_name" }
+    }
+  ]
+}
 
 Rules:
-- Exactly 5 outfits, ALL must be ${styleValue} style — do NOT generate casual, formal, or smart-casual outfits if the style is sporty, and vice versa
-- name: 2–4 words that clearly evoke ${styleValue} (e.g. for Sporty: "Track Day Look", "Gym Flow", "Athletic Edge")
-- description: under 12 words, captures the ${moodValue} mood and ${styleValue} vibe
-- items: 3–4 clothing pieces that are 100% appropriate for ${styleValue} style
-- imageQuery: 4–7 words for Pexels — MUST include "fashion outfit" AND style-specific words (e.g. for Sporty: "sporty athletic fashion outfit jogger", "gym sportswear fashion outfit hoodie") — never generic terms like "casual classic" or "smart casual" unless that IS the chosen style
-- Every single field must reflect ${styleValue} + ${moodValue} — no mixing with other styles`;
+- Generate exactly 5 outfits.
+- Each outfit MUST use exactly one 'shirt', one 'pants', and one 'shoes' chosen exclusively from the catalog above. Do NOT invent new items or IDs.
+- Double-check that the chosen item IDs match the catalog IDs perfectly.
+- "name": 2–4 words that clearly evoke the style and mood.
+- "description": under 12 words, captures the vibe.
+- Response MUST be pure, valid JSON matching the exact schema above. No backticks, no markdown code block wrapper.`;
 
-  try {
     const text = await generateWithRetry(prompt, [
       "gemini-2.5-flash",
       "gemini-2.0-flash",
       "gemini-2.0-flash-lite",
     ]);
 
-    const outfits = parseOutfits(text);
-    return NextResponse.json({ outfits, source: "gemini" });
+    let parsedData: { outfits?: any[] } = {};
+    try {
+      parsedData = JSON.parse(text);
+    } catch {
+      const match = text.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error("No JSON object found in response");
+      parsedData = JSON.parse(match[0]);
+    }
+
+    if (!Array.isArray(parsedData.outfits) || parsedData.outfits.length === 0) {
+      throw new Error("Parsed JSON has no outfits array");
+    }
+
+    const assembledOutfits: DBOutfit[] = parsedData.outfits.map((o: any) => {
+      const dbShirt = catalogMap.get(o.shirt?.id) || items.find(i => i.type === "shirt") || null;
+      const dbPants = catalogMap.get(o.pants?.id) || items.find(i => i.type === "pants") || null;
+      const dbShoes = catalogMap.get(o.shoes?.id) || items.find(i => i.type === "shoes") || null;
+
+      return {
+        name: o.name || "Stylish Vibe",
+        description: o.description || "Beautifully matched look",
+        shirt: dbShirt ? { id: dbShirt.id, name: dbShirt.name, processed_image_url: dbShirt.processed_image_url } : null,
+        pants: dbPants ? { id: dbPants.id, name: dbPants.name, processed_image_url: dbPants.processed_image_url } : null,
+        shoes: dbShoes ? { id: dbShoes.id, name: dbShoes.name, processed_image_url: dbShoes.processed_image_url } : null,
+      };
+    });
+
+    return NextResponse.json({ outfits: assembledOutfits, source: "gemini" });
   } catch (err: unknown) {
     const msg = err instanceof Error ? err.message : String(err);
-    console.error("[recommendation] all models failed, using fallback:", msg.slice(0, 200));
-    return NextResponse.json({ outfits: FALLBACK_OUTFITS, source: "fallback" });
+    console.error("[recommendation] error matching outfits, using static fallback:", msg);
+
+    // Dynamic static fallback from hardcoded mock list
+    const fallbackOutfits = [
+      {
+        name: "Casual Vibe",
+        description: "Comfortable and stylish look",
+        shirt: { id: "f-s1", name: "Casual T-Shirt", processed_image_url: "https://images.unsplash.com/photo-1521572267360-ee0c2909d518?q=80&w=300&auto=format&fit=crop" },
+        pants: { id: "f-p1", name: "Slim Chinos", processed_image_url: "https://images.unsplash.com/photo-1624378439575-d8705ad7ae80?q=80&w=300&auto=format&fit=crop" },
+        shoes: { id: "f-sh1", name: "Classic Sneakers", processed_image_url: "https://images.unsplash.com/photo-1549298916-b41d501d3772?q=80&w=300&auto=format&fit=crop" },
+      }
+    ];
+
+    return NextResponse.json({ outfits: fallbackOutfits, source: "fallback" });
   }
 }

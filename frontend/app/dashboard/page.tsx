@@ -8,12 +8,18 @@ import TopBar from "./components/TopBar";
 import { createClient } from "@/lib/supabase/client";
 
 
+interface DBClothingItem {
+  id: string;
+  name: string;
+  processed_image_url: string | null;
+}
+
 interface OutfitCard {
   name: string;
   description: string;
-  items: string[];
-  imageQuery: string;
-  imageUrl: string | null;
+  shirt: DBClothingItem | null;
+  pants: DBClothingItem | null;
+  shoes: DBClothingItem | null;
 }
 
 
@@ -24,10 +30,62 @@ interface OutfitCard {
 
 function CardShimmer() {
   return (
-    <div className="w-full h-full flex flex-col animate-pulse">
-      <div className="bg-gray-300" style={{ flex: "0 0 75%", width: "100%" }} />
-      <div className="flex items-center justify-center px-5" style={{ flex: "0 0 25%" }}>
-        <div className="h-5 w-32 bg-gray-300 rounded-full" />
+    <div className="w-full h-full flex flex-col p-6 justify-between animate-pulse bg-gray-50/50">
+      <div className="flex flex-col gap-2 items-center">
+        <div className="h-6 w-3/4 bg-gray-200 rounded-full" />
+        <div className="h-4 w-1/2 bg-gray-200 rounded-full" />
+      </div>
+      <div className="flex flex-col gap-3 flex-1 justify-center">
+        {Array.from({ length: 3 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3.5 bg-white rounded-[15px] p-2.5 border border-gray-100 h-[72px]">
+            <div className="w-[55px] h-[55px] rounded-[10px] bg-gray-200 shrink-0" />
+            <div className="flex flex-col gap-1.5 flex-1">
+              <div className="h-3 w-1/4 bg-gray-200 rounded-full" />
+              <div className="h-4 w-3/4 bg-gray-200 rounded-full" />
+            </div>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+
+function OutfitItemRow({
+  item,
+  label,
+  height,
+}: {
+  item: DBClothingItem | null;
+  label: string;
+  height: number;
+}) {
+  return (
+    <div 
+      className="flex items-center gap-3.5 bg-white rounded-[15px] p-2.5 shadow-sm border border-gray-100 hover:shadow-md hover:border-blue-100 transition-all duration-200 select-none"
+      style={{ height }}
+    >
+      {/* Small thumbnail container */}
+      <div className="w-[55px] h-[55px] rounded-[10px] bg-[#f4f5f8] flex items-center justify-center overflow-hidden shrink-0 border border-gray-50">
+        {item?.processed_image_url ? (
+          <img
+            src={item.processed_image_url}
+            alt={item.name}
+            className="w-full h-full object-contain p-1"
+          />
+        ) : (
+          <Shirt size={22} className="text-gray-300" strokeWidth={1.5} />
+        )}
+      </div>
+
+      {/* Item info */}
+      <div className="flex flex-col min-w-0 justify-center">
+        <span className="text-[10px] font-bold tracking-wider text-[#4361ee] uppercase">
+          {label}
+        </span>
+        <span className="text-[14px] font-semibold text-gray-800 truncate">
+          {item?.name || `No ${label.toLowerCase()}`}
+        </span>
       </div>
     </div>
   );
@@ -42,51 +100,37 @@ function OutfitCardView({
 }: {
   outfit: OutfitCard;
   cardHeight: number;
-  titleFontSize: number;
+  titleFontSize?: number;
   isSide?: boolean;
 }) {
-  const photoHeight = Math.round(cardHeight * 0.75);
+  const rowHeight = isSide ? 72 : 82;
 
   return (
     <div
-      className="w-full h-full flex flex-col"
-      style={{ opacity: isSide ? 0.85 : 1 }}
+      className="w-full h-full flex flex-col p-6 justify-between bg-gradient-to-b from-[#fbfbfe] to-[#f4f5f8]"
+      style={{ opacity: isSide ? 0.75 : 1, transition: "all 0.3s ease" }}
     >
-      {/* Photo — 75% of card height */}
-      <div
-        style={{
-          position: "relative",
-          width: "100%",
-          height: photoHeight,
-          flexShrink: 0,
-          backgroundColor: "#d9d9d9",
-        }}
-      >
-        {outfit.imageUrl ? (
-          <Image
-            src={outfit.imageUrl}
-            alt={outfit.name}
-            fill
-            style={{ objectFit: "cover" }}
-            sizes={isSide ? "311px" : "349px"}
-            priority={!isSide}
-          />
-        ) : (
-          <div className="w-full h-full animate-pulse bg-gray-300" />
-        )}
-      </div>
-
-      {/* Title — 25% of card height */}
-      <div
-        className="flex items-center justify-center px-5"
-        style={{ flex: 1 }}
-      >
+      {/* Title & Vibe Section */}
+      <div className="flex flex-col gap-1 text-center select-none">
         <h3
-          className="font-bold text-center text-gray-800 leading-tight"
-          style={{ fontSize: titleFontSize }}
+          className="font-extrabold text-gray-800 leading-snug tracking-tight text-ellipsis overflow-hidden whitespace-nowrap"
+          style={{ fontSize: isSide ? "20px" : "24px" }}
         >
           {outfit.name}
         </h3>
+        <p 
+          className="text-gray-400 font-medium tracking-wide text-ellipsis overflow-hidden whitespace-nowrap"
+          style={{ fontSize: isSide ? "11px" : "13px" }}
+        >
+          {outfit.description}
+        </p>
+      </div>
+
+      {/* Item list */}
+      <div className="flex flex-col gap-3 mt-4 flex-1 justify-center">
+        <OutfitItemRow item={outfit.shirt} label="Top" height={rowHeight} />
+        <OutfitItemRow item={outfit.pants} label="Bottom" height={rowHeight} />
+        <OutfitItemRow item={outfit.shoes} label="Shoes" height={rowHeight} />
       </div>
     </div>
   );
@@ -108,81 +152,25 @@ export default function DashboardPage() {
       const mood  = localStorage.getItem("fashai_mood")  ?? "";
       const style = localStorage.getItem("fashai_style") ?? "";
 
-      async function fetchAndSetPhotos(base: OutfitCard[]) {
-        const urls = await Promise.all(
-          base.map((outfit) =>
-            fetch("/api/photos", {
-              method: "POST",
-              headers: { "Content-Type": "application/json" },
-              body: JSON.stringify({ query: outfit.imageQuery }),
-            })
-              .then((r) => r.json())
-              .then((d) => (typeof d.url === "string" ? d.url : null))
-              .catch(() => null)
-          )
-        );
-        if (!cancelled) {
-          setOutfits((prev) => prev.map((o, i) => ({ ...o, imageUrl: urls[i] ?? null })));
-        }
-      }
-
-
       const cached = sessionStorage.getItem("fashai_outfits");
       if (cached) {
         try {
-          const saved = JSON.parse(cached) as Array<{ name: string; description: string; items: string[]; imageQuery: string }>;
-          if (Array.isArray(saved) && saved.length > 0) {
-            const base: OutfitCard[] = saved.map((o) => ({ ...o, imageUrl: null }));
-            if (!cancelled) { setOutfits(base); setLoading(false); }
-            fetchAndSetPhotos(base);
+          const saved = JSON.parse(cached) as Array<OutfitCard>;
+          if (Array.isArray(saved) && saved.length > 0 && "shirt" in saved[0]) {
+            if (!cancelled) { 
+              setOutfits(saved); 
+              setLoading(false); 
+            }
             return;
           }
         } catch { /* corrupt cache — fall through to fresh fetch */ }
       }
 
-
-      const supabase = createClient();
-      type WardrobeDetail = { name: string; type: string; theme: string; color: string };
-      let wardrobeItems: WardrobeDetail[] = [];
-
-      try {
-        const { data: sessionData } = await supabase.auth.getSession();
-        if (sessionData.session) {
-          const userId = sessionData.session.user.id;
-
-          const { data: wardrobes } = await supabase
-            .from("wardrobes")
-            .select("id")
-            .eq("user_id", userId);
-
-          if (wardrobes && wardrobes.length > 0) {
-            const wardrobeIds = wardrobes.map((w: { id: number }) => w.id);
-
-            const { data: wardrobeItemsData } = await supabase
-              .from("wardrobe_items")
-              .select("clothing_item_id")
-              .in("wardrobe_id", wardrobeIds);
-
-            if (wardrobeItemsData && wardrobeItemsData.length > 0) {
-              const clothingIds = wardrobeItemsData.map((wi: { clothing_item_id: number }) => wi.clothing_item_id);
-
-              const { data: clothingItems } = await supabase
-                .from("clothing_items")
-                .select("name, type, theme, color")
-                .in("id", clothingIds);
-
-              if (clothingItems) wardrobeItems = clothingItems as WardrobeDetail[];
-            }
-          }
-        }
-      } catch { /* wardrobe query failed — proceed without it */ }
-
-
       try {
         const res = await fetch("/api/recommendation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mood, style, wardrobeItems }),
+          body: JSON.stringify({ mood, style }),
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -192,17 +180,12 @@ export default function DashboardPage() {
           throw new Error("Empty outfits");
         }
 
-
         sessionStorage.setItem("fashai_outfits", JSON.stringify(data.outfits));
 
-        const base: OutfitCard[] = data.outfits.map(
-          (o: { name: string; description: string; items: string[]; imageQuery: string }) => ({
-            ...o,
-            imageUrl: null,
-          })
-        );
-        if (!cancelled) { setOutfits(base); setLoading(false); }
-        fetchAndSetPhotos(base);
+        if (!cancelled) {
+          setOutfits(data.outfits);
+          setLoading(false);
+        }
       } catch {
         if (!cancelled) {
           setError("Tidak dapat memuat rekomendasi outfit.");
