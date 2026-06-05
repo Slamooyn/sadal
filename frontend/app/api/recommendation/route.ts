@@ -75,7 +75,7 @@ export async function POST(request: Request) {
     console.log(`[recommendation] Loaded ${items.length} items from Supabase`);
 
     // Map items for rapid lookup
-    const catalogMap = new Map<string, any>();
+    const catalogMap = new Map<string, { id: string; name: string; type: string; theme: string; processed_image_url: string | null }>();
     items.forEach((item) => catalogMap.set(item.id, item));
 
     // If database has no items, create high-quality mock items to avoid blank screens
@@ -138,7 +138,7 @@ Rules:
       "gemini-2.0-flash-lite",
     ]);
 
-    let parsedData: { outfits?: any[] } = {};
+    let parsedData: { outfits?: { name?: string; description?: string; shirt?: { id?: string }; pants?: { id?: string }; shoes?: { id?: string } }[] } = {};
     try {
       parsedData = JSON.parse(text);
     } catch {
@@ -151,10 +151,10 @@ Rules:
       throw new Error("Parsed JSON has no outfits array");
     }
 
-    const assembledOutfits: DBOutfit[] = parsedData.outfits.map((o: any) => {
-      const dbShirt = catalogMap.get(o.shirt?.id) || items.find(i => i.type === "shirt") || null;
-      const dbPants = catalogMap.get(o.pants?.id) || items.find(i => i.type === "pants") || null;
-      const dbShoes = catalogMap.get(o.shoes?.id) || items.find(i => i.type === "shoes") || null;
+    const assembledOutfits: DBOutfit[] = parsedData.outfits.map((o) => {
+      const dbShirt = catalogMap.get(o.shirt?.id ?? "") || items.find(i => i.type === "shirt") || null;
+      const dbPants = catalogMap.get(o.pants?.id ?? "") || items.find(i => i.type === "pants") || null;
+      const dbShoes = catalogMap.get(o.shoes?.id ?? "") || items.find(i => i.type === "shoes") || null;
 
       return {
         name: o.name || "Stylish Vibe",
