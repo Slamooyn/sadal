@@ -1,8 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Image from "next/image";
-import { CheckCircle, Clock, CircleX, Shirt } from "lucide-react";
+import { Shirt, Sparkles } from "lucide-react";
 import Sidebar from "./components/Sidebar";
 import TopBar from "./components/TopBar";
 import { createClient } from "@/lib/supabase/client";
@@ -20,6 +19,7 @@ interface OutfitCard {
   shirt: DBClothingItem | null;
   pants: DBClothingItem | null;
   shoes: DBClothingItem | null;
+  source: "wardrobe" | "ai";
 }
 
 
@@ -92,15 +92,45 @@ function OutfitItemRow({
 }
 
 
+function SourceBadge({ source, isSide }: { source: "wardrobe" | "ai"; isSide?: boolean }) {
+  if (source === "wardrobe") {
+    return (
+      <div
+        className="inline-flex items-center gap-1.5 rounded-full font-semibold select-none"
+        style={{
+          backgroundColor: "#dcfce7",
+          color: "#16a34a",
+          fontSize: isSide ? "9px" : "10px",
+          padding: isSide ? "3px 8px" : "4px 10px",
+        }}
+      >
+        <Shirt size={isSide ? 10 : 12} strokeWidth={2.5} />
+        Your Wardrobe
+      </div>
+    );
+  }
+  return (
+    <div
+      className="inline-flex items-center gap-1.5 rounded-full font-semibold select-none"
+      style={{
+        background: "linear-gradient(135deg, #eef0fd, #f3e8ff)",
+        color: "#7c3aed",
+        fontSize: isSide ? "9px" : "10px",
+        padding: isSide ? "3px 8px" : "4px 10px",
+      }}
+    >
+      <Sparkles size={isSide ? 10 : 12} strokeWidth={2.5} />
+      AI Suggestion
+    </div>
+  );
+}
+
+
 function OutfitCardView({
   outfit,
-  cardHeight,
-  titleFontSize,
   isSide = false,
 }: {
   outfit: OutfitCard;
-  cardHeight: number;
-  titleFontSize?: number;
   isSide?: boolean;
 }) {
   const rowHeight = isSide ? 72 : 82;
@@ -111,7 +141,8 @@ function OutfitCardView({
       style={{ opacity: isSide ? 0.75 : 1, transition: "all 0.3s ease" }}
     >
       {/* Title & Vibe Section */}
-      <div className="flex flex-col gap-1 text-center select-none">
+      <div className="flex flex-col gap-1.5 text-center select-none items-center">
+        <SourceBadge source={outfit.source} isSide={isSide} />
         <h3
           className="font-extrabold text-gray-800 leading-snug tracking-tight text-ellipsis overflow-hidden whitespace-nowrap"
           style={{ fontSize: isSide ? "20px" : "24px" }}
@@ -147,10 +178,20 @@ export default function DashboardPage() {
 
   useEffect(() => {
     let cancelled = false;
+    const supabase = createClient();
 
     async function loadOutfits() {
       const mood  = localStorage.getItem("fashai_mood")  ?? "";
       const style = localStorage.getItem("fashai_style") ?? "";
+
+      // Get user session to pass userId
+      let userId: string | undefined;
+      try {
+        const { data: sessionData } = await supabase.auth.getSession();
+        userId = sessionData.session?.user?.id;
+      } catch {
+        console.warn("[dashboard] Could not get user session");
+      }
 
       const cached = sessionStorage.getItem("fashai_outfits");
       if (cached) {
@@ -170,7 +211,7 @@ export default function DashboardPage() {
         const res = await fetch("/api/recommendation", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ mood, style }),
+          body: JSON.stringify({ mood, style, userId }),
           cache: "no-store",
         });
         if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -275,8 +316,6 @@ export default function DashboardPage() {
                 ) : prevOutfit ? (
                   <OutfitCardView
                     outfit={prevOutfit}
-                    cardHeight={500}
-                    titleFontSize={16}
                     isSide
                   />
                 ) : null}
@@ -299,8 +338,6 @@ export default function DashboardPage() {
                 ) : currentOutfit ? (
                   <OutfitCardView
                     outfit={currentOutfit}
-                    cardHeight={560}
-                    titleFontSize={22}
                   />
                 ) : null}
               </div>
@@ -323,8 +360,6 @@ export default function DashboardPage() {
                 ) : nextOutfit ? (
                   <OutfitCardView
                     outfit={nextOutfit}
-                    cardHeight={500}
-                    titleFontSize={16}
                     isSide
                   />
                 ) : null}
